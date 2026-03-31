@@ -1,0 +1,47 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Build / packaging output
+build/
+build-*/
+dist/
+dist-*/
+*.egg-info/
+
+# PyInstaller / release artifacts
+*.manifest
+
+# Local runtime artifacts
+logs/
+*.log
+*.db
+*.db-wal
+*.db-shm
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Downloaded media / local content folders
+downloads/
+downloaded_media/
+media/
+posts/
+thumb_cache/
+
+# IDE / editor folders
+.idea/
+.vscode/

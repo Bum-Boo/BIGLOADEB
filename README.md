@@ -28,6 +28,8 @@ Windows ZIP:
 
 - [BIGLOADEB-win64.zip](https://github.com/Bum-Boo/BIGLOADEB/releases/download/v0.1.0/BIGLOADEB-win64.zip)
 
+Release artifacts should be distributed through GitHub Releases, not committed into the source tree.
+
 ## Preview
 
 The account-first screen is the main entry point for checking feeds and downloaded posts.
@@ -65,6 +67,7 @@ python -m ig_post_controller
 - [Chinese README](docs/readme/README.zh-CN.md)
 - [Japanese README](docs/readme/README.ja.md)
 - [Portfolio case study](docs/portfolio-case-study.md)
+- [GitHub metadata note](docs/github-metadata.md)
 
 ## Status
 

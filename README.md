@@ -2,7 +2,7 @@
 
 > Account-first Instagram post collection and local media management for Windows.
 
-[Overview](README.md) | [English](docs/readme/README.en.md) | [한국어](docs/readme/README.ko.md) | [中文](docs/readme/README.zh-CN.md) | [日本語](docs/readme/README.ja.md)
+[Overview](README.md) | [English](docs/readme/README.en.md) | [Korean](docs/readme/README.ko.md) | [Chinese](docs/readme/README.zh-CN.md) | [Japanese](docs/readme/README.ja.md)
 
 | Area | Detail |
 |---|---|
@@ -11,6 +11,23 @@
 | Storage | Local SQLite database and account-based download folders |
 | Current scope | Internal-use collector, feed checker, and downloaded-post manager |
 
+## Safety / Privacy Scope
+
+- Works with public Instagram account content only; do not use it for private, unauthorized, or client-sensitive data.
+- Stores app settings, SQLite tracking data, thumbnails, and downloaded media locally on the user's Windows machine.
+- Does not store Instagram passwords.
+- Does not implement upload/post automation.
+- Public demos and screenshots should use sanitized accounts and captions.
+- Platform access can be rate-limited or blocked by Instagram; the tool does not claim to bypass platform limits.
+
+## Download / Release
+
+Latest release: [BIGLOADEB v0.1.0](https://github.com/Bum-Boo/BIGLOADEB/releases/tag/v0.1.0)
+
+Windows ZIP:
+
+- [BIGLOADEB-win64.zip](https://github.com/Bum-Boo/BIGLOADEB/releases/download/v0.1.0/BIGLOADEB-win64.zip)
+
 ## Preview
 
 The account-first screen is the main entry point for checking feeds and downloaded posts.
@@ -18,9 +35,7 @@ The account-first screen is the main entry point for checking feeds and download
 ![Registered account list](docs/demo-screenshots/bigloadeb-use-01-account-list.png)
 
 <details>
-<summary>View full demo walkthrough</summary>
-
-The demo flow selects a registered Instagram account, checks its feed, then reviews the posts saved locally.
+<summary>View demo walkthrough</summary>
 
 1. Run `dist\IGPostController.exe`.
 2. Select `Accounts` from the left navigation.
@@ -28,15 +43,7 @@ The demo flow selects a registered Instagram account, checks its feed, then revi
 4. Select `Downloaded Posts` from the left navigation.
 5. Check the saved post card for its thumbnail, caption, `Download again`, and `Delete` actions.
 
-When the app opens, go to the account list. Click the `Feed` button on the account row to start checking posts for that account.
-
-![Registered account list](docs/demo-screenshots/bigloadeb-use-01-account-list.png)
-
-After the feed check, the same account list shows the latest check time and the available action buttons.
-
 ![Feed check result](docs/demo-screenshots/bigloadeb-use-02-feed-result.png)
-
-Open `Downloaded Posts` to review the saved post card, including its thumbnail, caption, and re-download/delete controls.
 
 ![Downloaded posts](docs/demo-screenshots/bigloadeb-use-03-downloaded-posts.png)
 
@@ -54,10 +61,11 @@ python -m ig_post_controller
 ## Documentation
 
 - [English README](docs/readme/README.en.md)
-- [한국어 README](docs/readme/README.ko.md)
-- [中文 README](docs/readme/README.zh-CN.md)
-- [日本語 README](docs/readme/README.ja.md)
+- [Korean README](docs/readme/README.ko.md)
+- [Chinese README](docs/readme/README.zh-CN.md)
+- [Japanese README](docs/readme/README.ja.md)
+- [Portfolio case study](docs/portfolio-case-study.md)
 
-## Notes
+## Status
 
-This overview is intentionally short. Detailed setup, architecture, limitations, and localized walkthroughs live in the linked README files.
+BIGLOADEB is best presented as an internal workflow/case-study project unless all account details, private posts, client references, and staff workflow data are sanitized.

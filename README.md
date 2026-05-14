@@ -75,4 +75,18 @@ The application version is stored in `ig_post_controller/version.py` as `__versi
 - The app does not support stories, likes/comments counts, login/auth, role permissions, auto-update, or upload automation.
 - Original-quality downloads are limited to the best public media variant Instagram exposes.
 - The app is intended for internal use only.
+## Demo Walkthrough
 
+실제 데모는 등록된 Instagram 계정을 선택하고, 피드 확인 후 로컬에 저장된 게시물 목록을 확인하는 흐름입니다.
+
+1. `dist\IGPostController.exe`를 실행합니다.
+2. 왼쪽에서 `계정`을 선택합니다.
+3. 등록된 계정 행의 `피드` 버튼을 누릅니다.
+4. 왼쪽에서 `다운로드된 게시물`을 선택합니다.
+5. 저장된 게시물 카드에서 썸네일, 캡션, `다시 다운로드`, `삭제` 버튼을 확인합니다.
+
+![Registered account list](docs/demo-screenshots/bigloadeb-use-01-account-list.png)
+
+![Feed check result](docs/demo-screenshots/bigloadeb-use-02-feed-result.png)
+
+![Downloaded posts](docs/demo-screenshots/bigloadeb-use-03-downloaded-posts.png)

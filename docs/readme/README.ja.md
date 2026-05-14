@@ -1,39 +1,113 @@
 # BIGLOADEB
 
-> Account-first Instagram post collection and local media management for Windows.
+> Windows 向けのアカウント中心 Instagram 投稿収集とローカルメディア管理ツール。
 
 [Overview](../../README.md) | [English](README.en.md) | [한국어](README.ko.md) | [中文](README.zh-CN.md) | [日本語](README.ja.md)
 
-BIGLOADEB は、複数のビジネス/クライアント用 Instagram 公開アカウントの投稿を収集し、ローカルで管理する Windows デスクトップアプリです。
+BIGLOADEB は、複数の business/client accounts から public Instagram posts を収集・管理するための Windows-only internal desktop app です。
 
-非エンジニアでも使いやすいように、アカウント一覧から Feed を確認し、ダウンロード済み投稿を管理する流れを中心にしています。
+年配または非技術 staff でも使えるように、シンプルな account-first workflow、明確な feeds、予測しやすい local folder organization を重視しています。
 
-### 主な機能
+## Safety / Privacy Boundaries
 
-- Instagram 公開 Profile URL の手動登録
-- アカウント別 Feed と統合 Feed の確認
-- 画像のみ/動画のみの投稿フィルタ
-- 詳細画面でのカルーセル、キャプションコピー、メディアプレビュー
-- アカウント別ローカルフォルダへの投稿ダウンロード
-- SQLite によるダウンロード履歴管理
-- ダウンロード済み投稿の再ダウンロード/削除
-- 設定からの言語とテーマ切り替え
+- public または authorized content のみを対象にします。
+- private access を迂回しません。
+- password や credential を保存しません。
+- media と metadata は local storage と SQLite に保存されます。
+- upload/post automation は実装していません。
+- public Instagram access は Instagram の policy、rate limit、session state によって制限されることがあります。
+- この project は internal-use workflow tool として説明するのが適切です。
 
-### 実行
+## Features
+
+- public Instagram profile URLs の手動登録。
+- username と display name を持つ account list screen から開始。
+- app launch 時に registered accounts の new posts を確認。
+- combined online feed または per-account feed を表示。
+- image-only / video-only posts で filter。
+- date で sort。
+- carousel support、caption copy、media preview を持つ post detail view。
+- account-based local folders に posts を download。
+- downloaded posts を SQLite で tracking。
+- downloaded posts を `posted to cafe` として mark。
+- local storage と local tracking から downloaded posts を delete。
+- Settings で language と theme を切り替え。
+
+## Project Layout
+
+- `ig_post_controller/` - app source code
+- `tests/` - regression and smoke tests
+- `build.ps1` - Windows release build script
+- `build_debug.ps1` - console debug build
+- `build_debug_onefile.ps1` - console one-file debug build
+- `IGPostController.spec` - PyInstaller spec file
+
+## Development Setup
 
 ```powershell
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
+```
+
+## Run in Dev Mode
+
+```powershell
 python -m ig_post_controller
 ```
 
-### デモ手順
+## Windows Release
+
+### Download
+
+1. この repository の GitHub Releases page を開きます。
+2. latest Windows release asset をダウンロードします。
+3. release が `.zip` として packaged されている場合は archive を展開します。
+4. `IGPostController.exe` を実行します。
+
+### User Data Locations
+
+- App settings and local database: `%LOCALAPPDATA%\IGPostController`
+- Thumbnail cache: `%LOCALAPPDATA%\IGPostController\thumb_cache`
+- Default download root: `Documents\IG Post Controller Downloads`
+
+## Build a Release
+
+```powershell
+.\build.ps1
+```
+
+release executable は `dist\IGPostController.exe` に生成されます。
+
+## Versioning
+
+application version は `ig_post_controller/version.py` の `__version__` に保存されています。
+
+## Known Limitations
+
+- Public Instagram access は Instagram によって rate-limited または blocked されることがあります。
+- stories、likes/comments counts、login/auth、role permissions、auto-update、upload automation はサポートしていません。
+- Original-quality downloads は Instagram が公開する best public media variant に制限されます。
+- この app は internal use only を前提としています。
+
+## Demo Walkthrough
+
+demo flow では registered Instagram account を選択し、feed を確認し、locally saved posts を review します。
 
 1. `dist\IGPostController.exe` を実行します。
-2. 左側ナビゲーションで `Accounts` を選択します。
-3. 登録済みアカウント行の `Feed` ボタンをクリックします。
-4. 左側ナビゲーションで `Downloaded Posts` を選択します。
-5. 保存済み投稿カードで、サムネイル、キャプション、再ダウンロード、削除操作を確認します。
+2. 左 navigation から `Accounts` を選択します。
+3. registered account row の `Feed` button をクリックします。
+4. 左 navigation から `Downloaded Posts` を選択します。
+5. saved post card の thumbnail、caption、`Download again`、`Delete` actions を確認します。
 
-デモ画像は English セクションの同じ画面フローを参照してください。
+アプリを開いたら account list に移動します。account row の `Feed` button をクリックして、その account の posts 確認を始めます。
+
+![Registered account list](../demo-screenshots/bigloadeb-use-01-account-list.png)
+
+feed check 後、同じ account list に latest check time と available action buttons が表示されます。
+
+![Feed check result](../demo-screenshots/bigloadeb-use-02-feed-result.png)
+
+`Downloaded Posts` を開くと、thumbnail、caption、re-download/delete controls を含む saved post card を確認できます。
+
+![Downloaded posts](../demo-screenshots/bigloadeb-use-03-downloaded-posts.png)

@@ -1,39 +1,113 @@
 # BIGLOADEB
 
-> Account-first Instagram post collection and local media management for Windows.
+> 面向 Windows 的账号优先 Instagram 帖子收集与本地媒体管理工具。
 
 [Overview](../../README.md) | [English](README.en.md) | [한국어](README.ko.md) | [中文](README.zh-CN.md) | [日本語](README.ja.md)
 
-BIGLOADEB 是一款 Windows 桌面应用，用于收集和管理多个业务或客户 Instagram 公开账号的帖子。
+BIGLOADEB 是一个 Windows-only internal desktop app，用于从多个 business/client accounts 收集和管理 public Instagram posts。
 
-它面向非技术人员，采用以账号为起点的简单流程：选择账号、检查 Feed、再管理已下载的本地帖子。
+它面向年长或非技术 staff，重点是简单的 account-first workflow、清晰的 feeds，以及可预测的 local folder organization。
 
-### 主要功能
+## Safety / Privacy Boundaries
 
-- 手动注册 Instagram 公开 Profile URL
-- 查看账号列表、单账号 Feed 和合并 Feed
-- 按图片或视频帖子筛选
-- 在详情页查看轮播、复制文案并预览媒体
-- 按账号保存到本地文件夹
-- 使用 SQLite 跟踪下载记录
-- 管理已下载帖子的重新下载和删除
-- 在设置中切换语言和主题
+- 只面向 public 或 authorized content。
+- 不绕过 private access。
+- 不保存 password 或 credential。
+- media 和 metadata 存储在 local storage 与 SQLite 中。
+- 不实现 upload/post automation。
+- public Instagram access 可能受 Instagram 政策、rate limit 和 session 状态限制。
+- 该项目更适合作为 internal-use workflow tool 展示。
 
-### 运行
+## Features
+
+- 手动注册 public Instagram profile URLs。
+- 从包含 username 和 display name 的 account list screen 开始。
+- app launch 时检查 registered accounts 是否有 new posts。
+- 查看 combined online feed 或 per-account feed。
+- 按 image-only 或 video-only posts 过滤。
+- 按日期排序。
+- post detail view 支持 carousel、caption copy 和 media preview。
+- 将 posts 下载到 account-based local folders。
+- 使用 SQLite tracking downloaded posts。
+- 将 downloaded posts 标记为 `posted to cafe`。
+- 从 local storage 和 local tracking 删除 downloaded posts。
+- 在 Settings 中切换 language 和 theme。
+
+## Project Layout
+
+- `ig_post_controller/` - app source code
+- `tests/` - regression and smoke tests
+- `build.ps1` - Windows release build script
+- `build_debug.ps1` - console debug build
+- `build_debug_onefile.ps1` - console one-file debug build
+- `IGPostController.spec` - PyInstaller spec file
+
+## Development Setup
 
 ```powershell
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
+```
+
+## Run in Dev Mode
+
+```powershell
 python -m ig_post_controller
 ```
 
-### 演示流程
+## Windows Release
+
+### Download
+
+1. 打开本 repository 的 GitHub Releases page。
+2. 下载 latest Windows release asset。
+3. 如果 release 以 `.zip` 打包，请解压 archive。
+4. 运行 `IGPostController.exe`。
+
+### User Data Locations
+
+- App settings and local database: `%LOCALAPPDATA%\IGPostController`
+- Thumbnail cache: `%LOCALAPPDATA%\IGPostController\thumb_cache`
+- Default download root: `Documents\IG Post Controller Downloads`
+
+## Build a Release
+
+```powershell
+.\build.ps1
+```
+
+release executable 会生成在 `dist\IGPostController.exe`。
+
+## Versioning
+
+application version 存储在 `ig_post_controller/version.py` 的 `__version__`。
+
+## Known Limitations
+
+- Public Instagram access 可能被 Instagram rate-limited 或 blocked。
+- 不支持 stories、likes/comments counts、login/auth、role permissions、auto-update 或 upload automation。
+- Original-quality downloads 受 Instagram 暴露的 best public media variant 限制。
+- 该应用 intended for internal use only。
+
+## Demo Walkthrough
+
+demo flow 会选择 registered Instagram account，检查 feed，然后查看 locally saved posts。
 
 1. 运行 `dist\IGPostController.exe`。
-2. 在左侧导航中选择 `Accounts`。
-3. 点击已注册账号行中的 `Feed` 按钮。
-4. 在左侧导航中选择 `Downloaded Posts`。
-5. 在已保存帖子卡片中查看缩略图、文案、重新下载和删除操作。
+2. 在左侧 navigation 中选择 `Accounts`。
+3. 点击 registered account row 上的 `Feed` button。
+4. 在左侧 navigation 中选择 `Downloaded Posts`。
+5. 查看 saved post card 的 thumbnail、caption、`Download again` 和 `Delete` actions。
 
-演示截图与 English 部分中的画面流程相同。
+应用打开后进入 account list。点击 account row 上的 `Feed` button，开始检查该 account 的 posts。
+
+![Registered account list](../demo-screenshots/bigloadeb-use-01-account-list.png)
+
+feed check 后，同一个 account list 会显示 latest check time 和 available action buttons。
+
+![Feed check result](../demo-screenshots/bigloadeb-use-02-feed-result.png)
+
+打开 `Downloaded Posts` 可查看 saved post card，包括 thumbnail、caption 和 re-download/delete controls。
+
+![Downloaded posts](../demo-screenshots/bigloadeb-use-03-downloaded-posts.png)

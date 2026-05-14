@@ -1,39 +1,113 @@
 # BIGLOADEB
 
-> Account-first Instagram post collection and local media management for Windows.
+> Windows용 계정 중심 Instagram 게시물 수집 및 로컬 미디어 관리 도구.
 
 [Overview](../../README.md) | [English](README.en.md) | [한국어](README.ko.md) | [中文](README.zh-CN.md) | [日本語](README.ja.md)
 
-BIGLOADEB는 여러 비즈니스/클라이언트 Instagram 공개 계정의 게시물을 수집하고 로컬에서 관리하는 Windows 전용 데스크톱 앱입니다.
+BIGLOADEB는 여러 business/client account의 public Instagram posts를 수집하고 관리하기 위한 Windows-only internal desktop app입니다.
 
-비개발자도 계정 목록에서 시작해 피드를 확인하고, 다운로드된 게시물을 로컬 폴더 구조로 관리할 수 있도록 단순한 흐름에 맞춰져 있습니다.
+나이가 있거나 기술에 익숙하지 않은 staff도 사용할 수 있도록 account-first workflow, 명확한 feed, 예측 가능한 local folder organization에 초점을 둡니다.
 
-### 주요 기능
+## Safety / Privacy Boundaries
 
-- Instagram 공개 프로필 URL 직접 등록
-- 계정별 피드 확인과 통합 피드 확인
-- 이미지/동영상 게시물 필터링
-- 게시물 상세 화면에서 캐러셀, 캡션 복사, 미디어 미리보기 확인
-- 계정별 로컬 폴더로 게시물 다운로드
-- SQLite로 다운로드 기록 관리
-- 다운로드된 게시물의 재다운로드/삭제 관리
-- 설정에서 언어와 테마 전환
+- public 또는 authorized content만 대상으로 합니다.
+- private access를 우회하지 않습니다.
+- password나 credential을 저장하지 않습니다.
+- media와 metadata는 local storage와 SQLite에 저장됩니다.
+- upload/post automation은 구현하지 않습니다.
+- public Instagram access는 Instagram 정책, rate limit, session 상태에 따라 제한될 수 있습니다.
+- 이 프로젝트는 internal-use workflow tool로 설명하는 것이 적절합니다.
 
-### 실행
+## Features
+
+- public Instagram profile URL 수동 등록.
+- username과 display name이 있는 account list screen에서 시작.
+- app launch 시 registered account의 new post 확인.
+- combined online feed 또는 per-account feed 보기.
+- image-only / video-only post filtering.
+- date sorting.
+- carousel support, caption copy, media preview가 있는 post detail view.
+- account-based local folder로 post download.
+- downloaded post를 SQLite로 tracking.
+- downloaded post를 `posted to cafe`로 표시.
+- local storage와 local tracking에서 downloaded post 삭제.
+- Settings에서 language와 theme 전환.
+
+## Project Layout
+
+- `ig_post_controller/` - app source code
+- `tests/` - regression and smoke tests
+- `build.ps1` - Windows release build script
+- `build_debug.ps1` - console debug build
+- `build_debug_onefile.ps1` - console one-file debug build
+- `IGPostController.spec` - PyInstaller spec file
+
+## Development Setup
 
 ```powershell
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
+```
+
+## Run in Dev Mode
+
+```powershell
 python -m ig_post_controller
 ```
 
-### 데모 흐름
+## Windows Release
+
+### Download
+
+1. 이 repository의 GitHub Releases page를 엽니다.
+2. latest Windows release asset을 다운로드합니다.
+3. release가 `.zip`으로 packaged되어 있으면 archive를 압축 해제합니다.
+4. `IGPostController.exe`를 실행합니다.
+
+### User Data Locations
+
+- App settings and local database: `%LOCALAPPDATA%\IGPostController`
+- Thumbnail cache: `%LOCALAPPDATA%\IGPostController\thumb_cache`
+- Default download root: `Documents\IG Post Controller Downloads`
+
+## Build a Release
+
+```powershell
+.\build.ps1
+```
+
+release executable은 `dist\IGPostController.exe` 아래에 생성됩니다.
+
+## Versioning
+
+application version은 `ig_post_controller/version.py`의 `__version__`에 저장됩니다.
+
+## Known Limitations
+
+- Public Instagram access는 Instagram에 의해 rate-limited 또는 blocked될 수 있습니다.
+- stories, likes/comments counts, login/auth, role permissions, auto-update, upload automation은 지원하지 않습니다.
+- Original-quality download는 Instagram이 노출하는 best public media variant로 제한됩니다.
+- 이 앱은 internal use only를 전제로 합니다.
+
+## Demo Walkthrough
+
+demo flow는 registered Instagram account를 선택하고 feed를 확인한 뒤 locally saved post를 검토하는 흐름입니다.
 
 1. `dist\IGPostController.exe`를 실행합니다.
-2. 왼쪽 메뉴에서 `계정`을 선택합니다.
-3. 등록된 계정 행의 `피드` 버튼을 누릅니다.
-4. 왼쪽 메뉴에서 `다운로드된 게시물`을 선택합니다.
-5. 저장된 게시물 카드에서 썸네일, 캡션, 다시 다운로드, 삭제 동작을 확인합니다.
+2. 왼쪽 navigation에서 `Accounts`를 선택합니다.
+3. registered account row의 `Feed` button을 클릭합니다.
+4. 왼쪽 navigation에서 `Downloaded Posts`를 선택합니다.
+5. saved post card에서 thumbnail, caption, `Download again`, `Delete` action을 확인합니다.
 
-데모 스크린샷은 위 English 섹션의 같은 화면 흐름을 참고하면 됩니다.
+앱이 열리면 account list로 이동합니다. account row의 `Feed` button을 클릭해 해당 account의 post 확인을 시작합니다.
+
+![Registered account list](../demo-screenshots/bigloadeb-use-01-account-list.png)
+
+feed check 후 같은 account list에는 latest check time과 available action button이 표시됩니다.
+
+![Feed check result](../demo-screenshots/bigloadeb-use-02-feed-result.png)
+
+`Downloaded Posts`를 열면 thumbnail, caption, re-download/delete control이 포함된 saved post card를 확인할 수 있습니다.
+
+![Downloaded posts](../demo-screenshots/bigloadeb-use-03-downloaded-posts.png)

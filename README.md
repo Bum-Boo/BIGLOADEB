@@ -77,22 +77,22 @@ The application version is stored in `ig_post_controller/version.py` as `__versi
 - The app is intended for internal use only.
 ## Demo Walkthrough
 
-실제 데모는 등록된 Instagram 계정을 선택하고, 피드 확인 후 로컬에 저장된 게시물 목록을 확인하는 흐름입니다.
+The demo flow selects a registered Instagram account, checks its feed, then reviews the posts saved locally.
 
-1. `dist\IGPostController.exe`를 실행합니다.
-2. 왼쪽에서 `계정`을 선택합니다.
-3. 등록된 계정 행의 `피드` 버튼을 누릅니다.
-4. 왼쪽에서 `다운로드된 게시물`을 선택합니다.
-5. 저장된 게시물 카드에서 썸네일, 캡션, `다시 다운로드`, `삭제` 버튼을 확인합니다.
+1. Run `dist\IGPostController.exe`.
+2. Select `Accounts` from the left navigation.
+3. Click the `Feed` button on a registered account row.
+4. Select `Downloaded Posts` from the left navigation.
+5. Check the saved post card for its thumbnail, caption, `Download again`, and `Delete` actions.
 
-앱이 열리면 왼쪽 메뉴에서 `계정`을 선택합니다. 등록된 계정 행에 있는 `피드` 버튼을 눌러 계정별 게시물 확인을 시작합니다.
+When the app opens, go to the account list. Click the `Feed` button on the account row to start checking posts for that account.
 
 ![Registered account list](docs/demo-screenshots/bigloadeb-use-01-account-list.png)
 
-피드 확인 후에는 같은 계정 목록에서 최근 확인 시간과 실행 가능한 버튼 상태를 확인합니다.
+After the feed check, the same account list shows the latest check time and the available action buttons.
 
 ![Feed check result](docs/demo-screenshots/bigloadeb-use-02-feed-result.png)
 
-`다운로드된 게시물` 메뉴로 이동하면 저장된 게시물 카드가 나오며, 여기서 썸네일, 캡션, 다시 다운로드/삭제 버튼을 확인할 수 있습니다.
+Open `Downloaded Posts` to review the saved post card, including its thumbnail, caption, and re-download/delete controls.
 
 ![Downloaded posts](docs/demo-screenshots/bigloadeb-use-03-downloaded-posts.png)

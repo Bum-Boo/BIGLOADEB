@@ -85,8 +85,14 @@ The application version is stored in `ig_post_controller/version.py` as `__versi
 4. 왼쪽에서 `다운로드된 게시물`을 선택합니다.
 5. 저장된 게시물 카드에서 썸네일, 캡션, `다시 다운로드`, `삭제` 버튼을 확인합니다.
 
+앱이 열리면 왼쪽 메뉴에서 `계정`을 선택합니다. 등록된 계정 행에 있는 `피드` 버튼을 눌러 계정별 게시물 확인을 시작합니다.
+
 ![Registered account list](docs/demo-screenshots/bigloadeb-use-01-account-list.png)
 
+피드 확인 후에는 같은 계정 목록에서 최근 확인 시간과 실행 가능한 버튼 상태를 확인합니다.
+
 ![Feed check result](docs/demo-screenshots/bigloadeb-use-02-feed-result.png)
+
+`다운로드된 게시물` 메뉴로 이동하면 저장된 게시물 카드가 나오며, 여기서 썸네일, 캡션, 다시 다운로드/삭제 버튼을 확인할 수 있습니다.
 
 ![Downloaded posts](docs/demo-screenshots/bigloadeb-use-03-downloaded-posts.png)

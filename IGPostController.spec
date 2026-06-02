@@ -1,7 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_all
 
-datas = []
+datas = [('assets\\app_icon.png', 'assets')]
 binaries = []
 hiddenimports = ['PySide6.QtMultimedia', 'PySide6.QtMultimediaWidgets']
 tmp_ret = collect_all('PySide6')
@@ -44,4 +44,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon=['assets\\app_icon.ico'],
 )

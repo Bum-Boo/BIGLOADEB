@@ -37,6 +37,12 @@ def _show_fatal_error(message: str) -> None:
         pass
 
 
+def _resource_path(relative_path: str) -> Path:
+    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+        return Path(sys._MEIPASS) / relative_path
+    return Path(__file__).resolve().parents[1] / relative_path
+
+
 def _configure_startup_logging() -> logging.Logger:
     global _STARTUP_LOG_STREAM
 
@@ -101,6 +107,7 @@ def main() -> int:
 
     try:
         logger.info("Importing application modules")
+        from PySide6.QtGui import QIcon
         from PySide6.QtWidgets import QApplication
 
         from ig_post_controller.config import APP_BRAND_NAME as CONFIG_APP_NAME, get_database_path
@@ -128,6 +135,12 @@ def main() -> int:
         app.setStyle("Fusion")
         app.setProperty("app_language", language)
         app.setProperty("app_theme", theme)
+        icon_path = _resource_path("assets/app_icon.png")
+        if icon_path.exists():
+            app.setWindowIcon(QIcon(str(icon_path)))
+            logger.info("Application icon loaded from %s", icon_path)
+        else:
+            logger.warning("Application icon not found at %s", icon_path)
         logger.info("QApplication created")
 
         logger.info("Initializing services")
@@ -142,6 +155,8 @@ def main() -> int:
 
         logger.info("Constructing main window")
         window = MainWindow(account_service, instagram_service, download_service, image_cache, translator, theme_manager)
+        if icon_path.exists():
+            window.setWindowIcon(QIcon(str(icon_path)))
         logger.info("Main window constructed")
 
         window.show()

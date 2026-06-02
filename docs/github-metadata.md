@@ -12,7 +12,7 @@ GitHub About metadata, topics, website/demo URL, pinned order, and social previe
 
 ## Release Entry
 
-- Latest release: [BIGLOADEB v0.1.0](https://github.com/Bum-Boo/BIGLOADEB/releases/tag/v0.1.0)
-- Windows ZIP: [BIGLOADEB-win64.zip](https://github.com/Bum-Boo/BIGLOADEB/releases/download/v0.1.0/BIGLOADEB-win64.zip)
+- Latest release: [BIGLOADEB v0.1.1](https://github.com/Bum-Boo/BIGLOADEB/releases/tag/v0.1.1)
+- Windows ZIP: [BIGLOADEB-win64.zip](https://github.com/Bum-Boo/BIGLOADEB/releases/download/v0.1.1/BIGLOADEB-win64.zip)
 
 Release artifacts should be distributed through GitHub Releases, not committed into the source tree.

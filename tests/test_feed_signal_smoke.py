@@ -11,6 +11,7 @@ from PySide6.QtWidgets import QApplication
 from ig_post_controller.models import AccountRecord
 from ig_post_controller.services.image_cache_service import ImageCacheService
 from ig_post_controller.ui.downloaded_feed_view import DownloadedFeedView
+from ig_post_controller.ui.i18n import LanguageManager
 from ig_post_controller.ui.online_feed_view import OnlineFeedView
 
 
@@ -41,10 +42,11 @@ class FeedSignalSmokeTests(unittest.TestCase):
     def test_feed_controls_accept_qt_arguments(self) -> None:
         app = QApplication.instance() or QApplication([])
         image_cache = ImageCacheService()
+        translator = LanguageManager("ko")
         accounts = self._make_accounts()
 
         for view_cls in (OnlineFeedView, DownloadedFeedView):
-            view = view_cls(image_cache)
+            view = view_cls(image_cache, translator)
             try:
                 view.set_accounts(accounts)
                 view.account_filter.setCurrentIndex(1)

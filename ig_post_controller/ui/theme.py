@@ -166,44 +166,65 @@ class ThemeManager(QObject):
         return f"""
             QWidget {{
                 color: {p.text};
+                font-family: "Malgun Gothic", "맑은 고딕", "Segoe UI", "Noto Sans KR", "Apple SD Gothic Neo", Arial, sans-serif;
+                font-size: 14px;
             }}
             QWidget#mainWindowCentral {{
                 background: {p.window_bg};
             }}
-            QWidget#contentPanel {{
+            QWidget#contentPanel, QStackedWidget, QStackedWidget > QWidget {{
                 background: {p.window_bg};
             }}
             QWidget#sidebarPanel {{
                 background: {p.sidebar_bg};
                 border-right: 1px solid {p.border};
             }}
-            QMainWindow {{
+            QMainWindow, QDialog {{
                 background: {p.window_bg};
             }}
-            QLabel#appTitleLabel, QLabel#sectionTitleLabel {{
+            QLabel#appTitleLabel {{
                 color: {p.text};
+                font-size: 24px;
+                font-weight: 800;
+                letter-spacing: -0.4px;
+            }}
+            QLabel#sectionTitleLabel {{
+                color: {p.text};
+                font-size: 22px;
+                font-weight: 750;
+                letter-spacing: -0.35px;
             }}
             QLabel#sectionSubtitleLabel, QLabel#emptyLabel, QLabel#settingsNoteLabel, QLabel#metaLineLabel, QLabel#cardDateLabel, QLabel#accountIntroLabel {{
                 color: {p.muted};
             }}
+            QLabel#emptyLabel {{
+                padding: 24px;
+            }}
             QLabel#loadingLabel {{
                 color: {p.accent};
-                font-weight: 600;
+                font-weight: 650;
+                padding: 6px 0px;
             }}
             QLabel#folderLabel {{
-                color: {p.text};
+                color: {p.muted};
+                font-size: 12px;
                 font-weight: 700;
+                letter-spacing: 0.2px;
             }}
-            QFrame#postCard {{
+            QFrame#postCard, QFrame#settingsPanel {{
                 background: {p.card_bg};
                 border: 1px solid {p.border};
-                border-radius: 14px;
+                border-radius: 16px;
+            }}
+            QFrame#postCard:hover {{
+                border-color: {p.accent};
+                background: {p.surface_bg};
             }}
             QLabel#thumbnailLabel {{
                 background: {p.surface_alt_bg};
                 color: {p.muted};
                 border: 1px solid {p.border};
-                border-radius: 10px;
+                border-radius: 12px;
                 padding: 0px;
             }}
             QFrame#cardBodyFrame {{
@@ -211,29 +232,48 @@ class ThemeManager(QObject):
             }}
             QLabel#cardCaptionLabel {{
                 color: {p.text};
+                font-size: 13px;
+                line-height: 130%;
+            }}
+            QLabel#cardDateLabel {{
+                font-size: 12px;
+                font-weight: 600;
             }}
             QLabel#cardStatusLabel {{
                 color: {p.accent};
-                font-weight: 600;
+                font-size: 12px;
+                font-weight: 750;
             }}
             QPushButton {{
                 background: {p.surface_bg};
                 border: 1px solid {p.border};
-                border-radius: 10px;
+                border-radius: 11px;
                 color: {p.text};
-                padding: 9px 14px;
+                padding: 10px 14px;
                 min-height: 38px;
+                font-weight: 650;
             }}
             QPushButton:hover {{
                 background: {p.surface_alt_bg};
+                border-color: {p.muted};
             }}
             QPushButton:pressed {{
                 background: {p.selection_bg};
+                border-color: {p.accent};
             }}
-            QPushButton:checked {{
+            QPushButton:disabled {{
+                color: {p.muted};
+                background: {p.surface_alt_bg};
+                border-color: {p.border};
+            }}
+            QPushButton:checked, QPushButton#primaryButton {{
                 background: {p.accent};
                 border-color: {p.accent};
                 color: {p.accent_text};
+            }}
+            QPushButton#primaryButton:hover {{
+                background: {p.accent};
+                border-color: {p.accent};
             }}
             QPushButton:focus {{
                 border-color: {p.accent};
@@ -241,14 +281,15 @@ class ThemeManager(QObject):
             QPushButton#navButton {{
                 text-align: left;
                 padding: 12px 14px;
-                border-radius: 12px;
+                border-radius: 13px;
                 background: transparent;
                 color: {p.text};
-                font-weight: 700;
-                min-height: 50px;
+                font-weight: 750;
+                min-height: 48px;
             }}
             QPushButton#navButton:hover {{
                 background: {p.surface_alt_bg};
+                border-color: {p.border};
             }}
             QPushButton#navButton:checked {{
                 background: {p.accent};
@@ -262,19 +303,25 @@ class ThemeManager(QObject):
             }}
             QPushButton#dangerButton:hover {{
                 background: {p.surface_alt_bg};
-            }}
-            QPushButton#dangerButton:focus {{
                 border-color: {p.danger};
+            }}
+            QPushButton#dangerButton:pressed {{
+                background: {p.warning};
+                color: {p.accent_text};
+                border-color: {p.warning};
             }}
             QComboBox, QLineEdit, QPlainTextEdit {{
                 background: {p.surface_bg};
                 border: 1px solid {p.border};
-                border-radius: 10px;
+                border-radius: 11px;
                 color: {p.text};
-                padding: 7px 34px 7px 10px;
+                padding: 8px 34px 8px 11px;
                 min-height: 38px;
                 selection-background-color: {p.selection_bg};
                 selection-color: {p.selection_text};
+            }}
+            QComboBox:hover, QLineEdit:hover, QPlainTextEdit:hover {{
+                border-color: {p.muted};
             }}
             QComboBox:focus, QLineEdit:focus, QPlainTextEdit:focus {{
                 border-color: {p.accent};
@@ -282,11 +329,11 @@ class ThemeManager(QObject):
             QComboBox::drop-down {{
                 subcontrol-origin: padding;
                 subcontrol-position: top right;
-                width: 28px;
+                width: 30px;
                 border-left: 1px solid {p.border};
                 background: {p.surface_alt_bg};
-                border-top-right-radius: 10px;
-                border-bottom-right-radius: 10px;
+                border-top-right-radius: 11px;
+                border-bottom-right-radius: 11px;
             }}
             QComboBox::down-arrow {{
                 width: 10px;
@@ -298,7 +345,9 @@ class ThemeManager(QObject):
                 selection-background-color: {p.selection_bg};
                 selection-color: {p.selection_text};
                 border: 1px solid {p.border};
+                border-radius: 10px;
                 outline: 0;
+                padding: 4px;
             }}
             QAbstractScrollArea, QScrollArea, QTableView {{
                 background: {p.window_bg};
@@ -307,19 +356,18 @@ class ThemeManager(QObject):
             QAbstractScrollArea QWidget, QScrollArea QWidget, QTableView QWidget {{
                 background: {p.window_bg};
             }}
-            QWidget#feedViewport, QWidget#cardGridWidget, QWidget#contentPanel, QStackedWidget, QStackedWidget > QWidget {{
+            QWidget#feedViewport, QWidget#cardGridWidget, QWidget#contentPanel {{
                 background: {p.window_bg};
             }}
             QScrollBar:vertical {{
-                background: {p.surface_alt_bg};
-                width: 12px;
-                margin: 2px 2px 2px 2px;
-                border-radius: 6px;
+                background: transparent;
+                width: 10px;
+                margin: 4px 2px 4px 2px;
             }}
             QScrollBar::handle:vertical {{
                 background: {p.border};
                 min-height: 28px;
-                border-radius: 6px;
+                border-radius: 5px;
             }}
             QScrollBar::handle:vertical:hover {{
                 background: {p.muted};
@@ -330,15 +378,14 @@ class ThemeManager(QObject):
                 background: transparent;
             }}
             QScrollBar:horizontal {{
-                background: {p.surface_alt_bg};
-                height: 12px;
-                margin: 2px 2px 2px 2px;
-                border-radius: 6px;
+                background: transparent;
+                height: 10px;
+                margin: 2px 4px 2px 4px;
             }}
             QScrollBar::handle:horizontal {{
                 background: {p.border};
                 min-width: 28px;
-                border-radius: 6px;
+                border-radius: 5px;
             }}
             QScrollBar::handle:horizontal:hover {{
                 background: {p.muted};
@@ -352,18 +399,29 @@ class ThemeManager(QObject):
                 background: {p.surface_bg};
                 color: {p.text};
                 border: 1px solid {p.border};
+                border-radius: 14px;
                 gridline-color: {p.border};
                 selection-background-color: {p.selection_bg};
                 selection-color: {p.selection_text};
-                alternate-background-color: {p.surface_bg};
+                alternate-background-color: {p.surface_alt_bg};
             }}
             QWidget#accountTableViewport {{
                 background: {p.surface_bg};
             }}
+            QWidget#accountActionCell {{
+                background: transparent;
+                border-bottom: 1px solid {p.border};
+            }}
+            QPushButton[accountAction="true"] {{
+                min-height: 34px;
+                padding: 5px 10px;
+                border-radius: 9px;
+            }}
             QTableWidget::item {{
-                background: {p.surface_bg};
+                background: transparent;
                 border: none;
-                padding: 6px 8px;
+                border-bottom: 1px solid {p.border};
+                padding: 9px 10px;
             }}
             QTableWidget::item:selected,
             QTableWidget::item:selected:active,
@@ -379,12 +437,11 @@ class ThemeManager(QObject):
             }}
             QHeaderView::section {{
                 background: {p.surface_alt_bg};
-                color: {p.text};
-                border: 1px solid {p.border};
-                padding: 6px 8px;
-            }}
-            QDialog {{
-                background: {p.window_bg};
+                color: {p.muted};
+                border: none;
+                border-bottom: 1px solid {p.border};
+                padding: 9px 10px;
+                font-weight: 750;
             }}
             QDialog QLabel {{
                 color: {p.text};
@@ -392,19 +449,20 @@ class ThemeManager(QObject):
             QCheckBox {{
                 color: {p.text};
                 spacing: 8px;
+                font-weight: 600;
             }}
             QCheckBox::indicator {{
                 width: 16px;
                 height: 16px;
-                border-radius: 4px;
+                border-radius: 5px;
                 border: 1px solid {p.border};
                 background: {p.surface_bg};
             }}
-            QCheckBox::indicator:checked {{
-                background: {p.accent};
+            QCheckBox::indicator:hover {{
                 border-color: {p.accent};
             }}
-            QCheckBox::indicator:focus {{
+            QCheckBox::indicator:checked {{
+                background: {p.accent};
                 border-color: {p.accent};
             }}
             QMenuBar {{
@@ -418,12 +476,30 @@ class ThemeManager(QObject):
                 background: {p.surface_bg};
                 color: {p.text};
                 border: 1px solid {p.border};
+                border-radius: 10px;
+                padding: 4px;
+            }}
+            QMenu::item {{
+                padding: 8px 24px;
+                border-radius: 7px;
             }}
             QMenu::item:selected {{
                 background: {p.selection_bg};
                 color: {p.selection_text};
             }}
-            QStackedWidget {{
-                background: transparent;
+            QToolTip {{
+                background: {p.surface_bg};
+                color: {p.text};
+                border: 1px solid {p.border};
+                border-radius: 8px;
+                padding: 6px 8px;
+            }}
+            QStatusBar {{
+                background: {p.window_bg};
+                color: {p.muted};
+                border-top: 1px solid {p.border};
+            }}
+            QProgressDialog {{
+                background: {p.window_bg};
             }}
         """

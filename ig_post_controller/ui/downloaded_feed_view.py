@@ -47,7 +47,6 @@ class DownloadedFeedView(QWidget):
 
         self.title_label = QLabel()
         self.title_label.setObjectName("sectionTitleLabel")
-        self.title_label.setStyleSheet("font-size: 22px; font-weight: 700;")
         layout.addWidget(self.title_label)
 
         self.subtitle_label = QLabel()
@@ -57,7 +56,6 @@ class DownloadedFeedView(QWidget):
 
         self.loading_label = QLabel()
         self.loading_label.setObjectName("loadingLabel")
-        self.loading_label.setStyleSheet("padding: 4px 0;")
         self.loading_label.setVisible(False)
         layout.addWidget(self.loading_label)
 
@@ -95,7 +93,6 @@ class DownloadedFeedView(QWidget):
 
         self.empty_label = QLabel()
         self.empty_label.setObjectName("emptyLabel")
-        self.empty_label.setStyleSheet("padding: 20px;")
         layout.addWidget(self.empty_label)
 
         self._render_generation = 0

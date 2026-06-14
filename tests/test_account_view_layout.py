@@ -11,6 +11,7 @@ from PySide6.QtWidgets import QApplication, QPushButton
 from ig_post_controller.models import AccountRecord
 from ig_post_controller.ui.account_view import AccountListView
 from ig_post_controller.ui.i18n import LanguageManager
+from ig_post_controller.ui.theme import ThemeManager
 
 
 class AccountViewLayoutTests(unittest.TestCase):
@@ -18,6 +19,8 @@ class AccountViewLayoutTests(unittest.TestCase):
         app = QApplication.instance() or QApplication([])
         self.assertIsNotNone(app)
 
+        theme = ThemeManager("clean_light")
+        theme.bind_application(app)
         view = AccountListView(LanguageManager("ko"))
         account = AccountRecord(
             id=1,
@@ -33,7 +36,8 @@ class AccountViewLayoutTests(unittest.TestCase):
         view.show()
         app.processEvents()
 
-        self.assertIn("border-bottom", view.table.styleSheet())
+        self.assertIn("QWidget#accountActionCell", app.styleSheet())
+        self.assertIn("border-bottom", app.styleSheet())
         self.assertEqual(view.table.rowHeight(0), view.ACTION_ROW_HEIGHT)
 
         action_cell = view.table.cellWidget(0, 4)

@@ -24,6 +24,7 @@ dist-*/
 
 # PyInstaller / release artifacts
 *.manifest
+release/
 
 # Local runtime artifacts
 logs/

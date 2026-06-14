@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
+from pathlib import Path
 
 
 @dataclass(slots=True)
@@ -35,14 +36,14 @@ class MediaItem:
         )
 
     def preview_source(self, prefer_local: bool = False) -> str | None:
-        if prefer_local and self.local_thumbnail_path:
+        if prefer_local and self.local_thumbnail_path and Path(self.local_thumbnail_path).exists():
             return self.local_thumbnail_path
-        if prefer_local and self.local_path and self.media_type == "image":
+        if prefer_local and self.local_path and self.media_type == "image" and Path(self.local_path).exists():
             return self.local_path
         return self.thumbnail_url or self.remote_url or self.local_thumbnail_path or self.local_path
 
     def playable_source(self, prefer_local: bool = False) -> str | None:
-        if prefer_local and self.local_path:
+        if prefer_local and self.local_path and Path(self.local_path).exists():
             return self.local_path
         return self.remote_url or self.local_path
 
@@ -82,6 +83,7 @@ class PostRecord:
     posted_to_cafe: bool = False
     downloaded_at: datetime | None = None
     download_id: int | None = None
+    download_folder_missing: bool = False
 
     @property
     def caption_preview(self) -> str:

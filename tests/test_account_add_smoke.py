@@ -16,6 +16,7 @@ from ig_post_controller.models import NewPostCheckResult
 from ig_post_controller.services.account_service import AccountService
 from ig_post_controller.services.download_service import DownloadService
 from ig_post_controller.services.image_cache_service import ImageCacheService
+from ig_post_controller.services.instagram_service import InstagramAccessError
 from ig_post_controller.ui.i18n import LanguageManager
 from ig_post_controller.ui.main_window import MainWindow
 
@@ -29,6 +30,21 @@ class FailingInstagramService:
 
     def initial_sync_account(self, account_id: int, limit: int = 24):
         return []
+
+
+class InitialSyncLimitedInstagramService(FailingInstagramService):
+    def __init__(self) -> None:
+        super().__init__(InstagramAccessError("Instagram limited feed access"))
+
+    def resolve_profile(self, profile_input: str) -> dict[str, str]:
+        return {
+            "profile_url": "https://www.instagram.com/katarinabluu/",
+            "username": "katarinabluu",
+            "display_name": "Katarina Blue",
+        }
+
+    def initial_sync_account(self, account_id: int, limit: int = 24):
+        raise self.exc
 
     def refresh_account_posts(self, account_id: int, limit: int = 24):
         return []
@@ -91,6 +107,38 @@ class AccountAddSmokeTests(unittest.TestCase):
                         self.assertGreaterEqual(critical.call_count, 1)
                 finally:
                     window.close()
+
+    def test_access_limited_initial_sync_still_saves_account(self) -> None:
+        app = QApplication.instance() or QApplication([])
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "test.db"
+            database = Database(db_path)
+            account_service = AccountService(database)
+            download_service = DownloadService(database)
+            download_service.set_download_root(Path(tmpdir) / "downloads")
+            image_cache = ImageCacheService()
+            translator = LanguageManager("ko")
+            instagram_service = InitialSyncLimitedInstagramService()
+            window = MainWindow(account_service, instagram_service, download_service, image_cache, translator)
+            try:
+                with mock.patch.object(QMessageBox, "critical", return_value=QMessageBox.StandardButton.Ok) as critical:
+                    with mock.patch.object(QMessageBox, "information", return_value=QMessageBox.StandardButton.Ok) as information:
+                        window.start_account_add("https://www.instagram.com/katarinabluu/")
+                        self.assertTrue(
+                            wait_until(lambda: window.active_task_count() == 0, app),
+                            "Background task did not finish cleanly",
+                        )
+
+                accounts = account_service.list_accounts()
+                self.assertEqual(len(accounts), 1)
+                self.assertEqual(accounts[0].username, "katarinabluu")
+                self.assertEqual(critical.call_count, 0)
+                self.assertGreaterEqual(information.call_count, 1)
+                self.assertIn("계정은 저장되었습니다", information.call_args.args[2])
+                self.assertIn("피드는 나중에 새로고침", information.call_args.args[2])
+            finally:
+                window.close()
 
 
 if __name__ == "__main__":

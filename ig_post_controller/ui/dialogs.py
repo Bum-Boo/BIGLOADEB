@@ -22,6 +22,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from ig_post_controller.config import APP_VERSION
 from ig_post_controller.models import PostRecord
 from ig_post_controller.services.image_cache_service import ImageCacheService
 from ig_post_controller.ui.i18n import LanguageManager
@@ -191,6 +192,7 @@ class BulkDownloadDialog(_TranslatedDialog):
 class SettingsDialog(_TranslatedDialog):
     language_selected = Signal(str)
     theme_selected = Signal(str)
+    update_check_requested = Signal()
 
     def __init__(
         self,
@@ -220,7 +222,21 @@ class SettingsDialog(_TranslatedDialog):
         self.theme_combo = QComboBox()
         self.theme_label = QLabel()
         form.addRow(self.theme_label, self.theme_combo)
+        self.version_label = QLabel()
+        self.version_label.setObjectName("settingsNoteLabel")
+        self.version_title_label = QLabel()
+        form.addRow(self.version_title_label, self.version_label)
         layout.addLayout(form)
+
+        update_row = QHBoxLayout()
+        self.update_status_label = QLabel()
+        self.update_status_label.setObjectName("settingsNoteLabel")
+        self.update_button = QPushButton()
+        self.update_button.setObjectName("primaryButton")
+        self.update_button.clicked.connect(self.update_check_requested.emit)
+        update_row.addWidget(self.update_status_label, 1)
+        update_row.addWidget(self.update_button)
+        layout.addLayout(update_row)
 
         self.buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
         self.buttons.accepted.connect(self._accept_settings)
@@ -270,6 +286,10 @@ class SettingsDialog(_TranslatedDialog):
         self.setWindowTitle(self._t("settings.title"))
         self.language_label.setText(self._t("settings.language"))
         self.theme_label.setText(self._t("settings.theme"))
+        self.version_title_label.setText(self._t("settings.version"))
+        self.version_label.setText(self._t("settings.version_value", version=APP_VERSION))
+        self.update_status_label.setText(self._t("settings.update_hint"))
+        self.update_button.setText(self._t("settings.check_update"))
         self.note_label.setText(self._t("settings.note"))
         self.buttons.button(QDialogButtonBox.StandardButton.Save).setText(self._t("settings.save"))
         self.buttons.button(QDialogButtonBox.StandardButton.Cancel).setText(self._t("settings.cancel"))
@@ -295,6 +315,7 @@ class SettingsDialog(_TranslatedDialog):
 class PostDetailDialog(_TranslatedDialog):
     download_requested = Signal(object)
     delete_requested = Signal(object)
+    reconnect_requested = Signal(object)
 
     def __init__(
         self,
@@ -377,15 +398,24 @@ class PostDetailDialog(_TranslatedDialog):
         else:
             self.delete_button = None
 
-        if post.folder_path:
+        if post.folder_path and not post.download_folder_missing:
             self.open_folder_button = QPushButton()
             self.open_folder_button.clicked.connect(lambda *_: open_in_file_browser(post.folder_path))
             actions.addWidget(self.open_folder_button)
         else:
             self.open_folder_button = None
 
+        if post.is_downloaded and post.download_folder_missing:
+            self.reconnect_folder_button = QPushButton()
+            self.reconnect_folder_button.setObjectName("primaryButton")
+            self.reconnect_folder_button.clicked.connect(lambda *_: self.reconnect_requested.emit(self.post))
+            actions.addWidget(self.reconnect_folder_button)
+        else:
+            self.reconnect_folder_button = None
+
         actions.addStretch(1)
         self.download_button = QPushButton()
+        self.download_button.setObjectName("primaryButton")
         self.download_button.clicked.connect(lambda *_: self._request_download())
         actions.addWidget(self.download_button)
         root.addLayout(actions)
@@ -404,6 +434,8 @@ class PostDetailDialog(_TranslatedDialog):
             self.delete_button.setText(self._t("post.delete"))
         if self.open_folder_button is not None:
             self.open_folder_button.setText(self._t("post_detail.open_folder"))
+        if self.reconnect_folder_button is not None:
+            self.reconnect_folder_button.setText(self._t("post_detail.reconnect_folder"))
         self.download_button.setText(self._t("post.redownload") if self.post.is_downloaded else self._t("post.download"))
         self.caption_box.setPlainText(self.post.caption or "")
         self.meta_line.setText(

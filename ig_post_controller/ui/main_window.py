@@ -2,11 +2,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import logging
+from pathlib import Path
 import time
 from functools import partial
 
 from PySide6.QtCore import QSignalBlocker, QTimer, Qt
 from PySide6.QtWidgets import (
+    QApplication,
     QFileDialog,
     QHBoxLayout,
     QLabel,
@@ -24,6 +26,9 @@ from ig_post_controller.config import (
     APP_BRAND_NAME,
     APP_LANGUAGE_SETTING_KEY,
     APP_THEME_SETTING_KEY,
+    APP_VERSION,
+    UPDATE_MANIFEST_URL,
+    get_app_data_dir,
     normalize_app_language,
     normalize_app_theme,
 )
@@ -31,7 +36,8 @@ from ig_post_controller.models import PostRecord
 from ig_post_controller.services.account_service import AccountService
 from ig_post_controller.services.download_service import DownloadService
 from ig_post_controller.services.image_cache_service import ImageCacheService
-from ig_post_controller.services.instagram_service import InstagramService
+from ig_post_controller.services.instagram_service import InstagramAccessError, InstagramService
+from ig_post_controller.services.update_service import UpdateCheckResult, UpdateService
 from ig_post_controller.ui.account_view import AccountListView
 from ig_post_controller.ui.dialogs import (
     AddAccountDialog,
@@ -81,6 +87,7 @@ class MainWindow(QMainWindow):
         self.image_cache = image_cache
         self.translator = translator or LanguageManager()
         self.theme_manager = theme_manager or ThemeManager()
+        self.update_service = UpdateService(APP_VERSION, UPDATE_MANIFEST_URL)
         self._active_tasks: dict[int, TaskHandle] = {}
         self._thumbnail_tasks: list[TaskHandle] = []
         self._active_progress: dict[int, QProgressDialog] = {}
@@ -121,7 +128,6 @@ class MainWindow(QMainWindow):
 
         self.app_title_label = QLabel()
         self.app_title_label.setObjectName("appTitleLabel")
-        self.app_title_label.setStyleSheet("font-size: 26px; font-weight: 800;")
         nav_layout.addWidget(self.app_title_label)
 
         self.accounts_button = self._make_nav_button("nav.accounts", self.PAGE_ACCOUNTS)
@@ -150,7 +156,6 @@ class MainWindow(QMainWindow):
 
         self.folder_label = QLabel()
         self.folder_label.setObjectName("folderLabel")
-        self.folder_label.setStyleSheet("font-weight: 700;")
         folder_layout.addWidget(self.folder_label)
 
         self.download_root_edit = QLineEdit()
@@ -454,12 +459,14 @@ class MainWindow(QMainWindow):
 
         self.start_account_add(dialog.profile_url(), dialog.company_name())
 
-    def _after_account_added(self) -> None:
+    def _after_account_added(self, result=None) -> None:
         self._reload_all_views()
+        skipped_initial_sync = bool(isinstance(result, dict) and result.get("skipped_initial_sync"))
+        message_key = "main.message.account_added_limited" if skipped_initial_sync else "main.message.account_added"
         QMessageBox.information(
             self,
             self._t("main.message.account_added_title"),
-            self._t("main.message.account_added"),
+            self._t(message_key),
         )
 
     def _refresh_account_posts(self, account_id: int) -> None:
@@ -515,6 +522,7 @@ class MainWindow(QMainWindow):
         )
         dialog.download_requested.connect(self._begin_single_download)
         dialog.delete_requested.connect(lambda requested_post, dlg=dialog: self._delete_downloaded_post(requested_post, after_delete=dlg.accept))
+        dialog.reconnect_requested.connect(lambda requested_post, dlg=dialog: self._reconnect_downloaded_post(requested_post, after_reconnect=dlg.accept))
         dialog.exec()
 
     def _begin_single_download(self, post: PostRecord) -> None:
@@ -532,7 +540,18 @@ class MainWindow(QMainWindow):
             job,
             loading_text=self._t("main.message.downloading_selected_post"),
             success_handler=lambda _: self._after_download_complete(single=True),
+            error_handler=self._handle_download_error,
         )
+
+    def _handle_download_error(self, message: str) -> None:
+        if "Target download folder already exists" in message:
+            QMessageBox.warning(
+                self,
+                self._t("download.error.folder_conflict.title"),
+                self._t("download.error.folder_conflict.body"),
+            )
+            return
+        QMessageBox.critical(self, self._t("main.message.operation_failed"), message)
 
     def _after_download_complete(self, *, single: bool) -> None:
         self._reload_all_views()
@@ -547,6 +566,58 @@ class MainWindow(QMainWindow):
         if self.pages.currentIndex() != self.PAGE_DOWNLOADED:
             self._downloaded_feed_dirty = True
 
+    def _reconnect_downloaded_post(self, post: PostRecord, *, after_reconnect=None) -> None:
+        if post.id is None:
+            QMessageBox.warning(
+                self,
+                self._t("downloaded.reconnect.title"),
+                self._t("downloaded.delete_confirm.missing"),
+            )
+            return
+        selected = QFileDialog.getExistingDirectory(
+            self,
+            self._t("downloaded.reconnect.title"),
+            str(self.download_service.get_download_root()),
+        )
+        if not selected:
+            return
+        answer = QMessageBox.question(
+            self,
+            self._t("downloaded.reconnect.title"),
+            self._t("downloaded.reconnect.confirm", folder=selected),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        try:
+            reconnected = self.download_service.reconnect_downloaded_post(post.id, selected)
+        except ValueError:
+            QMessageBox.warning(
+                self,
+                self._t("downloaded.reconnect.title"),
+                self._t("downloaded.reconnect.invalid"),
+            )
+            return
+        except Exception as exc:  # pragma: no cover - UI safety path
+            QMessageBox.critical(
+                self,
+                self._t("main.message.operation_failed"),
+                self._t("main.message.task_ui_failed", error=exc),
+            )
+            return
+        if not reconnected:
+            QMessageBox.information(
+                self,
+                self._t("downloaded.reconnect.title"),
+                self._t("downloaded.delete_confirm.not_found"),
+            )
+            return
+        self._reload_all_views(refresh_online_feed=True, refresh_downloaded_feed=True)
+        self.statusBar().showMessage(self._t("downloaded.reconnect.success"), 5000)
+        if after_reconnect is not None:
+            after_reconnect()
+
     def _delete_downloaded_post(self, post: PostRecord, *, after_delete=None) -> None:
         if post.id is None:
             QMessageBox.warning(
@@ -555,10 +626,15 @@ class MainWindow(QMainWindow):
                 self._t("downloaded.delete_confirm.missing"),
             )
             return
+        body_key = (
+            "downloaded.delete_confirm.body"
+            if self.download_service.will_delete_download_files(post.id)
+            else "downloaded.delete_confirm.record_only_body"
+        )
         answer = QMessageBox.question(
             self,
             self._t("downloaded.delete_confirm.title"),
-            self._t("downloaded.delete_confirm.body"),
+            self._t(body_key),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
@@ -638,6 +714,7 @@ class MainWindow(QMainWindow):
             job,
             loading_text=self._t("main.message.downloading_new_posts"),
             success_handler=lambda _: self._after_download_complete(single=False),
+            error_handler=self._handle_download_error,
         )
 
     def start_account_add(self, profile_url: str, company_name: str = "") -> int:
@@ -650,17 +727,23 @@ class MainWindow(QMainWindow):
                 display_name=resolved["display_name"],
                 company_name=resolved_company_name,
             )
-            self.instagram_service.initial_sync_account(account.id)
-            return account
+            skipped_initial_sync = False
+            try:
+                self.instagram_service.initial_sync_account(account.id)
+            except InstagramAccessError:
+                logger.warning("Initial Instagram feed sync skipped due to access limit username=%s", account.username)
+                skipped_initial_sync = True
+            return {"account": account, "skipped_initial_sync": skipped_initial_sync}
 
         return self._run_worker(
             job,
             loading_text=self._t("main.message.adding_account"),
-            success_handler=lambda _: self._after_account_added(),
+            success_handler=self._after_account_added,
         )
 
     def _open_settings(self) -> None:
         dialog = SettingsDialog(self.translator.language, self.theme_manager.theme, self.translator, self.theme_manager, self)
+        dialog.update_check_requested.connect(lambda: self._check_for_updates_interactive(dialog))
         if dialog.exec() != dialog.DialogCode.Accepted:
             return
         selected_language = normalize_app_language(dialog.selected_language())
@@ -676,6 +759,83 @@ class MainWindow(QMainWindow):
 
     def _save_theme(self, theme: str) -> None:
         self.account_service.database.set_setting(APP_THEME_SETTING_KEY, normalize_app_theme(theme))
+
+    def _check_for_updates_interactive(self, dialog: SettingsDialog | None = None) -> None:
+        if dialog is not None:
+            dialog.update_button.setEnabled(False)
+            dialog.update_status_label.setText(self._t("update.checking"))
+
+        def job() -> UpdateCheckResult:
+            return self.update_service.check_for_update()
+
+        def handle_success(result: UpdateCheckResult) -> None:
+            if dialog is not None:
+                dialog.update_button.setEnabled(True)
+                dialog.update_status_label.setText(self._t("settings.update_hint"))
+            self._handle_update_check_result(result)
+
+        def handle_error(message: str) -> None:
+            if dialog is not None:
+                dialog.update_button.setEnabled(True)
+                dialog.update_status_label.setText(self._t("settings.update_hint"))
+            QMessageBox.warning(self, self._t("update.error.title"), self._t("update.error.check_failed", error=message))
+
+        self._run_worker(
+            job,
+            loading_text=self._t("update.checking"),
+            success_handler=handle_success,
+            error_handler=handle_error,
+        )
+
+    def _handle_update_check_result(self, result: UpdateCheckResult) -> None:
+        if not result.available or result.asset is None or not result.version:
+            QMessageBox.information(
+                self,
+                self._t("update.none.title"),
+                self._t("update.none.body", version=APP_VERSION),
+            )
+            return
+        answer = QMessageBox.question(
+            self,
+            self._t("update.available.title"),
+            self._t("update.available.body", current=APP_VERSION, latest=result.version),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        self._download_and_apply_update(result)
+
+    def _download_and_apply_update(self, result: UpdateCheckResult) -> None:
+        if result.asset is None or not result.version:
+            return
+        installer_name = f"IGPostController-Setup-{result.version}.exe"
+        destination = get_app_data_dir() / "updates" / installer_name
+
+        def job() -> Path:
+            assert result.asset is not None
+            return self.update_service.download_installer(result.asset.installer_url, destination, result.asset.sha256)
+
+        def handle_success(installer_path: Path) -> None:
+            QMessageBox.information(
+                self,
+                self._t("update.ready.title"),
+                self._t("update.ready.body"),
+            )
+            self.update_service.launch_installer(installer_path)
+            app = QApplication.instance()
+            if app is not None:
+                app.quit()
+
+        def handle_error(message: str) -> None:
+            QMessageBox.critical(self, self._t("update.error.title"), self._t("update.error.download_failed", error=message))
+
+        self._run_worker(
+            job,
+            loading_text=self._t("update.downloading"),
+            success_handler=handle_success,
+            error_handler=handle_error,
+        )
 
     def active_task_count(self) -> int:
         return len(self._active_tasks)

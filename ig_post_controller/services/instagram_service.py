@@ -6,6 +6,7 @@ import threading
 import logging
 from datetime import datetime, timezone
 from html import unescape
+from pathlib import Path
 from typing import Any
 
 import requests
@@ -23,6 +24,14 @@ except ImportError:  # pragma: no cover - optional fallback only
 
 
 logger = logging.getLogger(__name__)
+
+
+class InstagramAccessError(RuntimeError):
+    """Raised when Instagram refuses or limits unauthenticated profile/feed access."""
+
+
+class InstagramRateLimitError(InstagramAccessError):
+    """Raised when Instagram rate-limits a profile/feed request."""
 
 
 class InstagramService:
@@ -60,9 +69,17 @@ class InstagramService:
         page = self._fetch_profile_page(username)
         if page.status_code == 404:
             raise ValueError(f"Profile '{username}' was not found on Instagram.")
-        page.raise_for_status()
+        try:
+            self._raise_for_status(page)
+        except InstagramAccessError:
+            logger.warning("Instagram profile access limited username=%s status=%s", username, page.status_code)
+            return self._fallback_profile(username)
 
-        feed_items = self._fetch_feed_items(username, count=1)
+        try:
+            feed_items = self._fetch_feed_items(username, count=1)
+        except InstagramAccessError:
+            logger.warning("Instagram feed access limited while resolving profile username=%s", username)
+            feed_items = []
         if feed_items:
             user = feed_items[0].get("user") or {}
             canonical_username = user.get("username") or username
@@ -93,7 +110,11 @@ class InstagramService:
     def refresh_all_accounts(self, limit: int = FETCH_LIMIT) -> list[PostRecord]:
         all_posts: list[PostRecord] = []
         for account in self.account_service.list_accounts():
-            posts, _ = self._sync_account(account, limit=limit, baseline=False)
+            try:
+                posts, _ = self._sync_account(account, limit=limit, baseline=False)
+            except InstagramAccessError:
+                logger.warning("Instagram access limited during refresh_all username=%s", account.username)
+                continue
             all_posts.extend(posts)
         return sorted(all_posts, key=lambda post: post.taken_at, reverse=True)
 
@@ -101,11 +122,15 @@ class InstagramService:
         new_posts: list[PostRecord] = []
         accounts = self.account_service.list_accounts()
         for account in accounts:
-            _, account_new_posts = self._sync_account(
-                account,
-                limit=limit,
-                baseline=account.last_seen_post_shortcode is None,
-            )
+            try:
+                _, account_new_posts = self._sync_account(
+                    account,
+                    limit=limit,
+                    baseline=account.last_seen_post_shortcode is None,
+                )
+            except InstagramAccessError:
+                logger.warning("Instagram access limited during startup check username=%s", account.username)
+                continue
             new_posts.extend(account_new_posts)
         new_posts.sort(key=lambda post: post.taken_at, reverse=True)
         return NewPostCheckResult(new_posts=new_posts, checked_accounts=len(accounts))
@@ -280,7 +305,7 @@ class InstagramService:
                 params=params,
                 timeout=REMOTE_REQUEST_TIMEOUT_SECONDS,
             )
-        response.raise_for_status()
+        self._raise_for_status(response)
         payload = response.json()
         return payload.get("items") or [], payload.get("next_max_id")
 
@@ -428,6 +453,46 @@ class InstagramService:
         return f"https://www.instagram.com/p/{shortcode}/"
 
     @staticmethod
+    def _fallback_profile(username: str) -> dict[str, str]:
+        return {
+            "profile_url": f"https://www.instagram.com/{username}/",
+            "username": username,
+            "display_name": username,
+        }
+
+    @staticmethod
+    def _raise_for_status(response: requests.Response) -> None:
+        if InstagramService._is_rate_limited_response(response):
+            raise InstagramRateLimitError(
+                "Instagram is temporarily limiting requests for this profile/feed. Try refreshing later."
+            )
+        if InstagramService._is_access_limited_response(response):
+            raise InstagramAccessError(
+                "Instagram refused or limited access to this profile/feed. Try refreshing later."
+            )
+        response.raise_for_status()
+
+    @staticmethod
+    def _is_rate_limited_response(response: requests.Response) -> bool:
+        return response.status_code == 429
+
+    @staticmethod
+    def _is_unauthorized_response(response: requests.Response) -> bool:
+        return response.status_code in {401, 403}
+
+    @staticmethod
+    def _is_login_redirect_response(response: requests.Response) -> bool:
+        return "/accounts/login" in (response.url or "")
+
+    @staticmethod
+    def _is_access_limited_response(response: requests.Response) -> bool:
+        return (
+            InstagramService._is_rate_limited_response(response)
+            or InstagramService._is_unauthorized_response(response)
+            or InstagramService._is_login_redirect_response(response)
+        )
+
+    @staticmethod
     def _extract_display_name_from_html(html: str, username: str) -> str:
         match = re.search(r'property="og:title" content="([^"]+)"', html)
         if not match:
@@ -476,10 +541,44 @@ class InstagramService:
             self._instaloader_post_to_api_like_dict(post, username, display_name),
         )
 
+    @staticmethod
+    def _media_items_from_json(media_json: str | None) -> list[MediaItem]:
+        if not media_json:
+            return []
+        try:
+            payload = json.loads(media_json)
+        except json.JSONDecodeError:
+            return []
+        if not isinstance(payload, list):
+            return []
+        items: list[MediaItem] = []
+        for item in payload:
+            if isinstance(item, dict):
+                items.append(MediaItem.from_dict(item))
+        return items
+
+    @staticmethod
+    def _is_download_folder_for_post(path: Path, *, expected_shortcode: str) -> bool:
+        meta_path = path / "meta.json"
+        caption_path = path / "caption.txt"
+        if not meta_path.is_file() or not caption_path.is_file():
+            return False
+        try:
+            payload = json.loads(meta_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return False
+        return isinstance(payload, dict) and payload.get("shortcode") == expected_shortcode
+
     def _row_to_post(self, row) -> PostRecord:
-        remote_items = [MediaItem.from_dict(item) for item in json.loads(row["media_json"])]
-        local_items = [MediaItem.from_dict(item) for item in json.loads(row["download_media_json"])] if row["download_media_json"] else []
+        remote_items = self._media_items_from_json(row["media_json"])
+        local_items = self._media_items_from_json(row["download_media_json"])
         media_items = merge_media_items(remote_items, local_items)
+        download_folder_missing = False
+        if row["download_id"]:
+            download_folder_missing = not self._is_download_folder_for_post(
+                Path(row["folder_path"]),
+                expected_shortcode=row["shortcode"],
+            )
         return PostRecord(
             id=row["id"],
             account_id=row["account_id"],
@@ -501,4 +600,5 @@ class InstagramService:
             posted_to_cafe=bool(row["posted_to_cafe"]) if row["posted_to_cafe"] is not None else False,
             downloaded_at=datetime.fromisoformat(row["downloaded_at"]) if row["downloaded_at"] else None,
             download_id=row["download_id"],
+            download_folder_missing=download_folder_missing,
         )

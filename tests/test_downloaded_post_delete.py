@@ -16,6 +16,7 @@ from ig_post_controller.services.account_service import AccountService
 from ig_post_controller.services.download_service import DownloadService
 from ig_post_controller.services.image_cache_service import ImageCacheService
 from ig_post_controller.ui.i18n import LanguageManager
+from ig_post_controller.ui.dialogs import PostDetailDialog
 from ig_post_controller.ui.widgets import PostCard
 
 
@@ -153,6 +154,77 @@ class DownloadedPostDeleteTests(unittest.TestCase):
                 card.caption_label.height(),
                 card.caption_label.fontMetrics().lineSpacing() * 3 + 4,
             )
+
+    def test_downloaded_post_card_marks_missing_download_folder(self) -> None:
+        app = QApplication.instance() or QApplication([])
+        self.assertIsNotNone(app)
+        post = PostRecord(
+            id=1,
+            account_id=1,
+            username="clienta",
+            display_name="Client A",
+            company_name="Client A",
+            shortcode="shortcode-1",
+            caption="Caption text",
+            taken_at=datetime(2026, 4, 1, 9, 0, 0),
+            post_type="image",
+            has_image=True,
+            has_video=False,
+            thumbnail_url="https://example.com/thumb.jpg",
+            source_url="https://www.instagram.com/p/shortcode-1/",
+            media_items=[],
+            is_downloaded=True,
+            folder_path="/missing/folder",
+            download_folder_missing=True,
+        )
+        image_cache = ImageCacheService()
+        image_cache.thumbnails_enabled = False
+
+        card = PostCard(
+            post,
+            image_cache=image_cache,
+            card_mode="downloaded",
+            show_posted_checkbox=True,
+            show_delete_button=True,
+            translator=LanguageManager("ko"),
+        )
+
+        self.assertEqual(card.status_label.text(), "폴더 없음/이동됨")
+
+    def test_post_detail_shows_reconnect_button_for_missing_download_folder(self) -> None:
+        app = QApplication.instance() or QApplication([])
+        self.assertIsNotNone(app)
+        post = PostRecord(
+            id=1,
+            account_id=1,
+            username="clienta",
+            display_name="Client A",
+            company_name="Client A",
+            shortcode="shortcode-1",
+            caption="Caption text",
+            taken_at=datetime(2026, 4, 1, 9, 0, 0),
+            post_type="image",
+            has_image=True,
+            has_video=False,
+            thumbnail_url="https://example.com/thumb.jpg",
+            source_url="https://www.instagram.com/p/shortcode-1/",
+            media_items=[],
+            is_downloaded=True,
+            folder_path="/missing/folder",
+            download_folder_missing=True,
+        )
+
+        image_cache = ImageCacheService()
+        image_cache.thumbnails_enabled = False
+        dialog = PostDetailDialog(
+            post,
+            image_cache,
+            translator=LanguageManager("ko"),
+        )
+
+        self.assertIsNotNone(dialog.reconnect_folder_button)
+        self.assertEqual(dialog.reconnect_folder_button.text(), "폴더 다시 연결")
+        self.assertIsNone(dialog.open_folder_button)
 
 
 if __name__ == "__main__":

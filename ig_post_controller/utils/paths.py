@@ -10,4 +10,7 @@ def ensure_directory(path: Path) -> Path:
 
 
 def open_in_file_browser(path: str | Path) -> None:
-    os.startfile(str(path))
+    target = Path(path)
+    if not target.exists():
+        raise FileNotFoundError(str(target))
+    os.startfile(str(target))

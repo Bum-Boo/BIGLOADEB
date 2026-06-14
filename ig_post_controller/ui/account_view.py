@@ -42,7 +42,6 @@ class AccountListView(QWidget):
 
         self.title_label = QLabel()
         self.title_label.setObjectName("sectionTitleLabel")
-        self.title_label.setStyleSheet("font-size: 22px; font-weight: 700;")
         layout.addWidget(self.title_label)
 
         self.intro_label = QLabel()
@@ -52,6 +51,7 @@ class AccountListView(QWidget):
 
         actions = QHBoxLayout()
         self.add_button = QPushButton()
+        self.add_button.setObjectName("primaryButton")
         self.add_button.clicked.connect(self._emit_add_account_requested)
         actions.addWidget(self.add_button)
         actions.addStretch(1)
@@ -80,29 +80,11 @@ class AccountListView(QWidget):
         self.table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
         self.table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)
         self.table.setWordWrap(True)
-        self.table.setStyleSheet(
-            """
-            QTableWidget::item {
-                border-bottom: 1px solid palette(midlight);
-            }
-            QWidget#accountActionCell {
-                border-bottom: 1px solid palette(midlight);
-                background: transparent;
-            }
-            QPushButton[accountAction="true"] {
-                min-height: 36px;
-                padding-top: 4px;
-                padding-bottom: 4px;
-                border-radius: 8px;
-            }
-            """
-        )
         layout.addWidget(self.table)
 
         self.empty_label = QLabel()
         self.empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.empty_label.setObjectName("emptyLabel")
-        self.empty_label.setStyleSheet("padding: 24px;")
         layout.addWidget(self.empty_label)
         self.retranslate_ui()
         self.translator.language_changed.connect(self.retranslate_ui)

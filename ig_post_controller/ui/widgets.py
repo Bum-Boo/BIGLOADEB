@@ -296,7 +296,6 @@ class PostCard(QFrame):
         date_row.setSpacing(0)
         self.date_label = QLabel()
         self.date_label.setObjectName("cardDateLabel")
-        self.date_label.setStyleSheet("font-size: 12px;")
         self.date_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         date_row.addWidget(self.date_label)
         date_row.addStretch(1)
@@ -304,7 +303,6 @@ class PostCard(QFrame):
 
         self.caption_label = QLabel()
         self.caption_label.setObjectName("cardCaptionLabel")
-        self.caption_label.setStyleSheet("font-size: 13px;")
         self.caption_label.setWordWrap(False)
         self.caption_label.setTextFormat(Qt.TextFormat.PlainText)
         self.caption_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
@@ -318,7 +316,6 @@ class PostCard(QFrame):
         status_row.setSpacing(0)
         self.status_label = QLabel()
         self.status_label.setObjectName("cardStatusLabel")
-        self.status_label.setStyleSheet("font-weight: 600;")
         self.status_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         status_row.addWidget(self.status_label)
         status_row.addStretch(1)
@@ -328,6 +325,7 @@ class PostCard(QFrame):
         controls.setSpacing(8)
         controls.setContentsMargins(0, 0, 0, 0)
         self.download_button = QPushButton()
+        self.download_button.setObjectName("primaryButton")
         self.download_button.setMinimumHeight(40)
         self.download_button.clicked.connect(lambda *_: self.download_requested.emit(self.post))
         controls.addWidget(self.download_button)
@@ -383,7 +381,9 @@ class PostCard(QFrame):
             clamp_multiline_text(caption if caption else self._t("post.no_caption"), self.caption_label.font(), self.CONTENT_WIDTH, 2)
         )
         if self.card_mode == "downloaded":
-            self.status_label.setText(self._t("post.status.saved"))
+            self.status_label.setText(
+                self._t("post.status.folder_missing") if post.download_folder_missing else self._t("post.status.saved")
+            )
         else:
             self.status_label.setText(self._t("post.status.downloaded_local") if post.is_downloaded else self._t("post.status.remote_only"))
         self.download_button.setText(self._t("post.redownload") if post.is_downloaded else self._t("post.download"))

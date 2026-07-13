@@ -12,7 +12,7 @@ GitHub About metadata, topics, website/demo URL, pinned order, and social previe
 
 ## Release Entry
 
-- Latest release: [BIGLOADEB v0.1.3](https://github.com/Bum-Boo/BIGLOADEB/releases/tag/v0.1.3)
-- Windows installer: [IGPostController-Setup-0.1.3.exe](https://github.com/Bum-Boo/BIGLOADEB/releases/download/v0.1.3/IGPostController-Setup-0.1.3.exe)
+- Latest release: [BIGLOADEB v0.1.3](https://github.com/Bum-Boo/BIGLOADER-with-Ai-agent/releases/tag/v0.1.3)
+- Windows installer: [IGPostController-Setup-0.1.3.exe](https://github.com/Bum-Boo/BIGLOADER-with-Ai-agent/releases/download/v0.1.3/IGPostController-Setup-0.1.3.exe)
 
 Release artifacts should be distributed through GitHub Releases, not committed into the source tree.

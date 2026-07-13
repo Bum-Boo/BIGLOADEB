@@ -57,11 +57,11 @@ if (-not (Test-Path $installerPath)) {
 
 $hash = (Get-FileHash $installerPath -Algorithm SHA256).Hash.ToUpperInvariant()
 $size = (Get-Item $installerPath).Length
-$downloadBase = "https://github.com/Bum-Boo/BIGLOADEB/releases/latest/download"
+$downloadBase = "https://github.com/Bum-Boo/BIGLOADER-with-Ai-agent/releases/latest/download"
 $manifest = [ordered]@{
   version = $version
   channel = "stable"
-  release_notes_url = "https://github.com/Bum-Boo/BIGLOADEB/releases/tag/v$version"
+  release_notes_url = "https://github.com/Bum-Boo/BIGLOADER-with-Ai-agent/releases/tag/v$version"
   mandatory = $false
   windows = [ordered]@{
     installer_url = "$downloadBase/$installerName"

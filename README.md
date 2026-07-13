@@ -1,4 +1,4 @@
-# BIGLOADEB
+# BIGLOADER with Ai agent
 
 > Account-first Instagram post collection and local media management for Windows.
 
@@ -22,11 +22,11 @@
 
 ## Download / Release
 
-Latest release: [BIGLOADEB v0.1.3](https://github.com/Bum-Boo/BIGLOADEB/releases/tag/v0.1.3)
+Latest release: [BIGLOADEB v0.1.3](https://github.com/Bum-Boo/BIGLOADER-with-Ai-agent/releases/tag/v0.1.3)
 
 Windows installer:
 
-- [IGPostController-Setup-0.1.3.exe](https://github.com/Bum-Boo/BIGLOADEB/releases/download/v0.1.3/IGPostController-Setup-0.1.3.exe)
+- [IGPostController-Setup-0.1.3.exe](https://github.com/Bum-Boo/BIGLOADER-with-Ai-agent/releases/download/v0.1.3/IGPostController-Setup-0.1.3.exe)
 
 Release artifacts should be distributed through GitHub Releases, not committed into the source tree.
 

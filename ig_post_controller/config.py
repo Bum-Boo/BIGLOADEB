@@ -6,7 +6,7 @@ from pathlib import Path
 APP_NAME = "IG Post Controller"
 APP_BRAND_NAME = "BIGLOADEB"
 APP_VERSION = "0.1.3"
-UPDATE_MANIFEST_URL = "https://github.com/Bum-Boo/BIGLOADEB/releases/latest/download/update.json"
+UPDATE_MANIFEST_URL = "https://github.com/Bum-Boo/BIGLOADER-with-Ai-agent/releases/latest/download/update.json"
 FETCH_LIMIT = 24
 STARTUP_CHECK_LIMIT = 12
 THUMBNAIL_CACHE_DIRNAME = "thumb_cache"

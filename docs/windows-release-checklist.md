@@ -45,7 +45,7 @@ Use a clean Windows user profile or VM if possible.
   - `IGPostController-Setup-<version>.exe`
   - `update.json`
 - The in-app updater checks:
-  `https://github.com/Bum-Boo/BIGLOADEB/releases/latest/download/update.json`
+  `https://github.com/Bum-Boo/BIGLOADER-with-Ai-agent/releases/latest/download/update.json`
 
 ## Signing
 

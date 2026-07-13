@@ -5,7 +5,7 @@ from pathlib import Path
 
 APP_NAME = "IG Post Controller"
 APP_BRAND_NAME = "BIGLOADEB"
-APP_VERSION = "0.1.2"
+APP_VERSION = "0.1.3"
 UPDATE_MANIFEST_URL = "https://github.com/Bum-Boo/BIGLOADEB/releases/latest/download/update.json"
 FETCH_LIMIT = 24
 STARTUP_CHECK_LIMIT = 12
@@ -13,6 +13,9 @@ THUMBNAIL_CACHE_DIRNAME = "thumb_cache"
 DATABASE_FILENAME = "ig_post_controller.db"
 APP_LANGUAGE_SETTING_KEY = "app_language"
 APP_THEME_SETTING_KEY = "app_theme"
+DOWNLOAD_LAYOUT_SETTING_KEY = "download_layout"
+DEFAULT_DOWNLOAD_LAYOUT = "organized"
+SUPPORTED_DOWNLOAD_LAYOUTS = {"organized", "flat"}
 DEFAULT_APP_LANGUAGE = "ko"
 DEFAULT_APP_THEME = "clean_light"
 SUPPORTED_APP_LANGUAGES = {"en", "ko", "ja", "zh"}
@@ -39,9 +42,7 @@ def get_database_path() -> Path:
 
 def get_default_download_root() -> Path:
     documents = Path.home() / "Documents"
-    path = documents / "IG Post Controller Downloads"
-    path.mkdir(parents=True, exist_ok=True)
-    return path
+    return documents / "BIGLOADEB Downloads"
 
 
 def get_thumbnail_cache_dir() -> Path:
@@ -78,3 +79,14 @@ def normalize_app_theme(value: str | None) -> str:
     }
     normalized = aliases.get(cleaned, cleaned)
     return normalized if normalized in SUPPORTED_APP_THEMES else DEFAULT_APP_THEME
+
+
+def normalize_download_layout(value: str | None) -> str:
+    normalized = (value or "").strip().lower().replace("-", "_")
+    aliases = {
+        "simple": "flat",
+        "single_folder": "flat",
+        "grouped": "organized",
+    }
+    normalized = aliases.get(normalized, normalized)
+    return normalized if normalized in SUPPORTED_DOWNLOAD_LAYOUTS else DEFAULT_DOWNLOAD_LAYOUT

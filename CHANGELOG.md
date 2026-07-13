@@ -1,5 +1,24 @@
 # BIGLOADEB / IG Post Controller Changelog
 
+## 0.1.3 - 2026-07-13
+
+### Added
+- Automatic recovery to a safe per-user download folder when a saved drive or folder is unavailable.
+- Organized and flat post-folder layout choices for future downloads.
+- Bounded bulk reconnection for moved download folders using verified post metadata.
+- Database backup before schema migration and archived-account handling for accounts with retained downloads.
+
+### Improved
+- Storage failures no longer stop the whole app; existing paths and download records remain unchanged.
+- Account removal preserves downloaded files and their tracking records.
+- Storage, account, download, and recovery actions use clearer Korean, English, Japanese, and Chinese labels.
+- Optional Qt multimedia failures now disable video preview only instead of preventing app startup.
+- Demo screenshots now use a distinct, sanitized online-feed example.
+
+### Notes
+- Existing downloaded folders are not moved automatically when the layout setting changes.
+- The installer remains unsigned unless a code-signing certificate is configured separately.
+
 ## 0.1.2 - 2026-06-15
 
 ### Added

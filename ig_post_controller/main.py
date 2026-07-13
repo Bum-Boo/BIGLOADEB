@@ -4,7 +4,6 @@ import faulthandler
 import logging
 import os
 import sys
-import traceback
 from pathlib import Path
 
 from PySide6.QtCore import QLocale
@@ -66,7 +65,11 @@ def _configure_startup_logging() -> logging.Logger:
         logging.critical("Unhandled startup exception", exc_info=(exc_type, exc, tb))
         if _STARTUP_LOG_STREAM is not None:
             _STARTUP_LOG_STREAM.flush()
-        _show_fatal_error("The app failed to start.\n\n" + "".join(traceback.format_exception(exc_type, exc, tb)))
+        _show_fatal_error(
+            "BIGLOADEB를 시작하지 못했어요. 앱을 다시 실행해 주세요. "
+            "문제가 계속되면 startup.log 파일을 전달해 주세요.\n\n"
+            "BIGLOADEB could not start. Please restart the app or share startup.log."
+        )
 
     sys.excepthook = _log_uncaught_exception
     return logging.getLogger("ig_post_controller.startup")
@@ -166,7 +169,11 @@ def main() -> int:
         return exit_code
     except Exception:
         logger.exception("Startup failed")
-        _show_fatal_error("The app failed to start.\n\n" + traceback.format_exc())
+        _show_fatal_error(
+            "BIGLOADEB를 시작하지 못했어요. 앱을 다시 실행해 주세요. "
+            "문제가 계속되면 startup.log 파일을 전달해 주세요.\n\n"
+            "BIGLOADEB could not start. Please restart the app or share startup.log."
+        )
         return 1
     finally:
         if _STARTUP_LOG_STREAM is not None:

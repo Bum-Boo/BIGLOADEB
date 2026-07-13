@@ -82,7 +82,7 @@ class ThemeDefaultTests(unittest.TestCase):
         self.assertEqual(dialog.theme_label.text(), "Theme")
         self.assertEqual(
             dialog.note_label.text(),
-            "Choose the app language. The selection is saved and applied immediately.",
+            "Choose the language, theme, and how new downloads are organized. Existing files are not moved automatically.",
         )
 
         en_index = next(

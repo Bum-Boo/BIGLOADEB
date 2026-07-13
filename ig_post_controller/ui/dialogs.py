@@ -4,8 +4,13 @@ from pathlib import Path
 
 from PySide6.QtCore import Qt, QUrl, Signal
 from PySide6.QtGui import QDesktopServices
-from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
-from PySide6.QtMultimediaWidgets import QVideoWidget
+try:
+    from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
+    from PySide6.QtMultimediaWidgets import QVideoWidget
+except ImportError:  # Multimedia libraries may be unavailable in test/minimal environments.
+    QAudioOutput = None  # type: ignore[assignment]
+    QMediaPlayer = None  # type: ignore[assignment]
+    QVideoWidget = None  # type: ignore[assignment]
 from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
@@ -192,6 +197,7 @@ class BulkDownloadDialog(_TranslatedDialog):
 class SettingsDialog(_TranslatedDialog):
     language_selected = Signal(str)
     theme_selected = Signal(str)
+    download_layout_selected = Signal(str)
     update_check_requested = Signal()
 
     def __init__(
@@ -201,10 +207,12 @@ class SettingsDialog(_TranslatedDialog):
         translator: LanguageManager | None = None,
         theme_manager: ThemeManager | None = None,
         parent=None,
+        current_download_layout: str = "organized",
     ) -> None:
         super().__init__(translator, parent)
         self._current_language = current_language
         self._current_theme = current_theme
+        self._current_download_layout = current_download_layout
         self.theme_manager = theme_manager
         self.setWindowTitle(self._t("settings.title"))
         self.resize(380, 220)
@@ -222,6 +230,9 @@ class SettingsDialog(_TranslatedDialog):
         self.theme_combo = QComboBox()
         self.theme_label = QLabel()
         form.addRow(self.theme_label, self.theme_combo)
+        self.download_layout_combo = QComboBox()
+        self.download_layout_label = QLabel()
+        form.addRow(self.download_layout_label, self.download_layout_combo)
         self.version_label = QLabel()
         self.version_label.setObjectName("settingsNoteLabel")
         self.version_title_label = QLabel()
@@ -245,6 +256,7 @@ class SettingsDialog(_TranslatedDialog):
         self.retranslate_ui()
         self._set_current_language(current_language)
         self._set_current_theme(current_theme)
+        self._set_current_download_layout(current_download_layout)
 
     def _set_current_language(self, language: str) -> None:
         self.language_combo.blockSignals(True)
@@ -282,10 +294,23 @@ class SettingsDialog(_TranslatedDialog):
                 break
         self.theme_combo.blockSignals(False)
 
+    def _set_current_download_layout(self, layout: str) -> None:
+        self.download_layout_combo.blockSignals(True)
+        self.download_layout_combo.clear()
+        self.download_layout_combo.addItem(self._t("settings.download_layout.organized"), "organized")
+        self.download_layout_combo.addItem(self._t("settings.download_layout.flat"), "flat")
+        target = layout if layout in {"organized", "flat"} else "organized"
+        for index in range(self.download_layout_combo.count()):
+            if self.download_layout_combo.itemData(index) == target:
+                self.download_layout_combo.setCurrentIndex(index)
+                break
+        self.download_layout_combo.blockSignals(False)
+
     def retranslate_ui(self, *_args) -> None:
         self.setWindowTitle(self._t("settings.title"))
         self.language_label.setText(self._t("settings.language"))
         self.theme_label.setText(self._t("settings.theme"))
+        self.download_layout_label.setText(self._t("settings.download_layout"))
         self.version_title_label.setText(self._t("settings.version"))
         self.version_label.setText(self._t("settings.version_value", version=APP_VERSION))
         self.update_status_label.setText(self._t("settings.update_hint"))
@@ -299,10 +324,13 @@ class SettingsDialog(_TranslatedDialog):
         self._set_current_language(current or self._current_language)
         current_theme = self.theme_combo.currentData()
         self._set_current_theme(current_theme or self._current_theme)
+        current_layout = self.download_layout_combo.currentData()
+        self._set_current_download_layout(current_layout or self._current_download_layout)
 
     def _accept_settings(self) -> None:
         self.language_selected.emit(self.selected_language())
         self.theme_selected.emit(self.selected_theme())
+        self.download_layout_selected.emit(self.selected_download_layout())
         self.accept()
 
     def selected_language(self) -> str:
@@ -310,6 +338,9 @@ class SettingsDialog(_TranslatedDialog):
 
     def selected_theme(self) -> str:
         return str(self.theme_combo.currentData() or "clean_light")
+
+    def selected_download_layout(self) -> str:
+        return str(self.download_layout_combo.currentData() or "organized")
 
 
 class PostDetailDialog(_TranslatedDialog):
@@ -343,13 +374,18 @@ class PostDetailDialog(_TranslatedDialog):
         self.image_preview = ThumbnailLabel(image_cache, translator=translator, height=420, task_handles=thumbnail_task_handles)
         self.preview_stack.addWidget(self.image_preview)
 
-        self.video_widget = QVideoWidget()
+        if QVideoWidget is not None and QMediaPlayer is not None and QAudioOutput is not None:
+            self.video_widget = QVideoWidget()
+            self.player = QMediaPlayer(self)
+            self.audio_output = QAudioOutput(self)
+            self.player.setAudioOutput(self.audio_output)
+            self.player.setVideoOutput(self.video_widget)
+        else:
+            self.video_widget = QLabel(self._t("post_preview.video_unavailable"))
+            self.video_widget.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.player = None
+            self.audio_output = None
         self.preview_stack.addWidget(self.video_widget)
-
-        self.player = QMediaPlayer(self)
-        self.audio_output = QAudioOutput(self)
-        self.player.setAudioOutput(self.audio_output)
-        self.player.setVideoOutput(self.video_widget)
 
         root.addWidget(self.preview_stack)
 
@@ -450,7 +486,8 @@ class PostDetailDialog(_TranslatedDialog):
         self._update_preview()
 
     def closeEvent(self, event) -> None:  # noqa: N802
-        self.player.stop()
+        if self.player is not None:
+            self.player.stop()
         super().closeEvent(event)
 
     def _change_index(self, delta: int) -> None:
@@ -460,6 +497,8 @@ class PostDetailDialog(_TranslatedDialog):
         self._update_preview()
 
     def _toggle_playback(self) -> None:
+        if self.player is None or QMediaPlayer is None:
+            return
         if self.preview_stack.currentWidget() is not self.video_widget:
             return
         if self.player.playbackState() == QMediaPlayer.PlaybackState.PlayingState:
@@ -495,7 +534,7 @@ class PostDetailDialog(_TranslatedDialog):
 
         if current.media_type == "video":
             source = current.playable_source(prefer_local=prefer_local)
-            if not source:
+            if not source or self.player is None:
                 self.image_preview.setText(self._t("post_preview.video_unavailable"))
                 self.preview_stack.setCurrentWidget(self.image_preview)
                 self.play_button.setEnabled(False)
@@ -505,7 +544,8 @@ class PostDetailDialog(_TranslatedDialog):
             self.preview_stack.setCurrentWidget(self.video_widget)
             self.play_button.setEnabled(True)
         else:
-            self.player.stop()
+            if self.player is not None:
+                self.player.stop()
             self.image_preview.set_source(current.preview_source(prefer_local=prefer_local))
             self.preview_stack.setCurrentWidget(self.image_preview)
             self.play_button.setEnabled(False)

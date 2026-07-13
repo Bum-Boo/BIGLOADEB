@@ -22,11 +22,11 @@
 
 ## Download / Release
 
-Latest release: [BIGLOADEB v0.1.1](https://github.com/Bum-Boo/BIGLOADEB/releases/tag/v0.1.1)
+Latest release: [BIGLOADEB v0.1.3](https://github.com/Bum-Boo/BIGLOADEB/releases/tag/v0.1.3)
 
-Windows ZIP:
+Windows installer:
 
-- [BIGLOADEB-win64.zip](https://github.com/Bum-Boo/BIGLOADEB/releases/download/v0.1.1/BIGLOADEB-win64.zip)
+- [IGPostController-Setup-0.1.3.exe](https://github.com/Bum-Boo/BIGLOADEB/releases/download/v0.1.3/IGPostController-Setup-0.1.3.exe)
 
 Release artifacts should be distributed through GitHub Releases, not committed into the source tree.
 
@@ -41,9 +41,9 @@ The account-first screen is the main entry point for checking feeds and download
 
 1. Run `dist\IGPostController.exe`.
 2. Select `Accounts` from the left navigation.
-3. Click the `Feed` button on a registered account row.
+3. Click the `View Posts` button on a registered account row.
 4. Select `Downloaded Posts` from the left navigation.
-5. Check the saved post card for its thumbnail, caption, `Download again`, and `Delete` actions.
+5. Check the saved post card for its thumbnail, caption, `Download Files Again`, and `Delete` actions.
 
 ![Feed check result](docs/demo-screenshots/bigloadeb-use-02-feed-result.png)
 

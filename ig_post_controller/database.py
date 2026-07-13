@@ -2,15 +2,33 @@ from __future__ import annotations
 
 import sqlite3
 from contextlib import contextmanager
+from datetime import datetime
 from pathlib import Path
+import shutil
 from typing import Iterator
 
 
 class Database:
+    SCHEMA_VERSION = 2
+
     def __init__(self, db_path: Path) -> None:
         self.db_path = db_path
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self._backup_before_migration()
         self._initialize()
+
+    def _backup_before_migration(self) -> None:
+        if not self.db_path.is_file() or self.db_path.stat().st_size == 0:
+            return
+        with sqlite3.connect(self.db_path) as connection:
+            version = int(connection.execute("PRAGMA user_version").fetchone()[0])
+        if version >= self.SCHEMA_VERSION:
+            return
+        backup_dir = self.db_path.parent / "backups"
+        backup_dir.mkdir(parents=True, exist_ok=True)
+        stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        backup_path = backup_dir / f"{self.db_path.stem}-before-schema-{self.SCHEMA_VERSION}-{stamp}{self.db_path.suffix}"
+        shutil.copy2(self.db_path, backup_path)
 
     @contextmanager
     def connect(self) -> Iterator[sqlite3.Connection]:
@@ -44,7 +62,8 @@ class Database:
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL,
                     last_checked_at TEXT,
-                    last_seen_post_shortcode TEXT
+                    last_seen_post_shortcode TEXT,
+                    archived INTEGER NOT NULL DEFAULT 0
                 );
 
                 CREATE TABLE IF NOT EXISTS posts (
@@ -85,6 +104,12 @@ class Database:
                 CREATE INDEX IF NOT EXISTS idx_downloads_downloaded_at ON downloads(downloaded_at);
                 """
             )
+            account_columns = {
+                row[1] for row in connection.execute("PRAGMA table_info(accounts)").fetchall()
+            }
+            if "archived" not in account_columns:
+                connection.execute("ALTER TABLE accounts ADD COLUMN archived INTEGER NOT NULL DEFAULT 0")
+            connection.execute(f"PRAGMA user_version = {self.SCHEMA_VERSION}")
 
     def get_setting(self, key: str) -> str | None:
         with self.connect() as connection:

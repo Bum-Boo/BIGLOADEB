@@ -96,11 +96,11 @@ demo flow는 registered Instagram account를 선택하고 feed를 확인한 뒤 
 
 1. `dist\IGPostController.exe`를 실행합니다.
 2. 왼쪽 navigation에서 `Accounts`를 선택합니다.
-3. registered account row의 `Feed` button을 클릭합니다.
+3. 등록된 계정 행의 `게시물 보기` 버튼을 클릭합니다.
 4. 왼쪽 navigation에서 `Downloaded Posts`를 선택합니다.
-5. saved post card에서 thumbnail, caption, `Download again`, `Delete` action을 확인합니다.
+5. 저장된 게시물 카드에서 썸네일, 캡션, `파일 다시 받기`, `삭제` 작업을 확인합니다.
 
-앱이 열리면 account list로 이동합니다. account row의 `Feed` button을 클릭해 해당 account의 post 확인을 시작합니다.
+앱이 열리면 계정 목록으로 이동합니다. 계정 행의 `게시물 보기` 버튼을 클릭해 해당 계정의 게시물 확인을 시작합니다.
 
 ![Registered account list](../demo-screenshots/bigloadeb-use-01-account-list.png)
 

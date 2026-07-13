@@ -162,9 +162,17 @@ class MainWindow(QMainWindow):
         self.download_root_edit.setReadOnly(True)
         folder_layout.addWidget(self.download_root_edit, 1)
 
+        self.storage_status_label = QLabel()
+        self.storage_status_label.setObjectName("settingsNoteLabel")
+        folder_layout.addWidget(self.storage_status_label)
+
         self.choose_folder_button = QPushButton()
         self.choose_folder_button.clicked.connect(lambda *_: self._choose_download_root())
         folder_layout.addWidget(self.choose_folder_button)
+
+        self.reconnect_folders_button = QPushButton()
+        self.reconnect_folders_button.clicked.connect(lambda *_: self._reconnect_moved_downloads())
+        folder_layout.addWidget(self.reconnect_folders_button)
 
         self.open_folder_button = QPushButton()
         self.open_folder_button.clicked.connect(lambda *_: self._open_download_root())
@@ -211,7 +219,9 @@ class MainWindow(QMainWindow):
         self.settings_button.setText(self._t("nav.settings"))
         self.folder_label.setText(self._t("main.download_folder"))
         self.choose_folder_button.setText(self._t("main.change_folder"))
+        self.reconnect_folders_button.setText(self._t("main.reconnect_folders"))
         self.open_folder_button.setText(self._t("main.open_folder"))
+        self._update_storage_status_label()
 
     def _handle_theme_changed(self, *_args) -> None:
         logger.info("Theme changed theme=%s", self.theme_manager.theme)
@@ -277,7 +287,25 @@ class MainWindow(QMainWindow):
             self._pending_online_reload_force = False
 
     def _update_download_root_display(self) -> None:
-        self.download_root_edit.setText(str(self.download_service.get_download_root()))
+        root = self.download_service.get_download_root()
+        self.download_root_edit.setText(str(root))
+        self.download_root_edit.setCursorPosition(0)
+        self.download_root_edit.setToolTip(str(root))
+        self._update_storage_status_label()
+        previous = self.download_service.consume_download_root_recovery_notice()
+        if previous:
+            self.statusBar().showMessage(
+                self._t("storage.recovered", old=previous, new=root),
+                12000,
+            )
+
+    def _update_storage_status_label(self) -> None:
+        if not hasattr(self, "storage_status_label"):
+            return
+        layout_key = f"settings.download_layout.{self.download_service.get_download_layout()}"
+        self.storage_status_label.setText(
+            self._t("storage.status.ready", layout=self._t(layout_key))
+        )
 
     def _reload_all_views(self, *, refresh_online_feed: bool = True, refresh_downloaded_feed: bool = True) -> None:
         accounts = self.account_service.list_accounts()
@@ -505,8 +533,48 @@ class MainWindow(QMainWindow):
         )
         if not selected:
             return
-        self.download_service.set_download_root(selected)
+        try:
+            self.download_service.set_download_root(selected)
+        except OSError:
+            QMessageBox.warning(
+                self,
+                self._t("storage.error.title"),
+                self._t("storage.error.unavailable"),
+            )
+            return
         self._update_download_root_display()
+
+    def _reconnect_moved_downloads(self) -> None:
+        selected = QFileDialog.getExistingDirectory(
+            self,
+            self._t("storage.reconnect.title"),
+            str(self.download_service.get_download_root()),
+        )
+        if not selected:
+            return
+
+        def handle_success(result: dict[str, int]) -> None:
+            self._reload_all_views(refresh_online_feed=True, refresh_downloaded_feed=True)
+            QMessageBox.information(
+                self,
+                self._t("storage.reconnect.title"),
+                self._t(
+                    "storage.reconnect.result",
+                    reconnected=result.get("reconnected", 0),
+                    scanned=result.get("scanned", 0),
+                ),
+            )
+
+        self._run_worker(
+            lambda: self.download_service.reconnect_downloads_under(selected),
+            loading_text=self._t("storage.reconnect.scanning"),
+            success_handler=handle_success,
+            error_handler=lambda _message: QMessageBox.warning(
+                self,
+                self._t("storage.reconnect.title"),
+                self._t("storage.reconnect.failed"),
+            ),
+        )
 
     def _open_download_root(self) -> None:
         open_in_file_browser(self.download_service.get_download_root())
@@ -551,7 +619,16 @@ class MainWindow(QMainWindow):
                 self._t("download.error.folder_conflict.body"),
             )
             return
-        QMessageBox.critical(self, self._t("main.message.operation_failed"), message)
+        lowered = message.casefold()
+        if any(token in lowered for token in ("winerror 3", "no such file", "path not found")):
+            body = self._t("storage.error.unavailable")
+        elif any(token in lowered for token in ("permission denied", "winerror 5", "read-only")):
+            body = self._t("storage.error.permission")
+        elif any(token in lowered for token in ("no space left", "disk full", "winerror 112")):
+            body = self._t("storage.error.full")
+        else:
+            body = self._t("main.message.safe_operation_failed")
+        QMessageBox.critical(self, self._t("main.message.operation_failed"), body)
 
     def _after_download_complete(self, *, single: bool) -> None:
         self._reload_all_views()
@@ -742,14 +819,23 @@ class MainWindow(QMainWindow):
         )
 
     def _open_settings(self) -> None:
-        dialog = SettingsDialog(self.translator.language, self.theme_manager.theme, self.translator, self.theme_manager, self)
+        dialog = SettingsDialog(
+            self.translator.language,
+            self.theme_manager.theme,
+            self.translator,
+            self.theme_manager,
+            self,
+            current_download_layout=self.download_service.get_download_layout(),
+        )
         dialog.update_check_requested.connect(lambda: self._check_for_updates_interactive(dialog))
         if dialog.exec() != dialog.DialogCode.Accepted:
             return
         selected_language = normalize_app_language(dialog.selected_language())
         selected_theme = normalize_app_theme(dialog.selected_theme())
+        self.download_service.set_download_layout(dialog.selected_download_layout())
         self._save_language(selected_language)
         self._save_theme(selected_theme)
+        self._update_storage_status_label()
         self.translator.set_language(selected_language)
         self.theme_manager.set_theme(selected_theme)
         self.statusBar().showMessage(self._t("settings.saved"), 3000)

@@ -96,11 +96,11 @@ demo flow では registered Instagram account を選択し、feed を確認し�
 
 1. `dist\IGPostController.exe` を実行します。
 2. 左 navigation から `Accounts` を選択します。
-3. registered account row の `Feed` button をクリックします。
+3. 登録済みアカウント行の `投稿を見る` ボタンをクリックします。
 4. 左 navigation から `Downloaded Posts` を選択します。
-5. saved post card の thumbnail、caption、`Download again`、`Delete` actions を確認します。
+5. 保存済み投稿カードのサムネイル、キャプション、`ファイルを再ダウンロード`、`削除` を確認します。
 
-アプリを開いたら account list に移動します。account row の `Feed` button をクリックして、その account の posts 確認を始めます。
+アプリを開いたらアカウント一覧に移動します。アカウント行の `投稿を見る` ボタンをクリックして投稿の確認を始めます。
 
 ![Registered account list](../demo-screenshots/bigloadeb-use-01-account-list.png)
 

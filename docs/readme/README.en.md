@@ -86,11 +86,11 @@ The demo flow selects a registered Instagram account, checks its feed, then revi
 
 1. Run `dist\IGPostController.exe`.
 2. Select `Accounts` from the left navigation.
-3. Click the `Feed` button on a registered account row.
+3. Click the `View Posts` button on a registered account row.
 4. Select `Downloaded Posts` from the left navigation.
-5. Check the saved post card for its thumbnail, caption, `Download again`, and `Delete` actions.
+5. Check the saved post card for its thumbnail, caption, `Download Files Again`, and `Delete` actions.
 
-When the app opens, go to the account list. Click the `Feed` button on the account row to start checking posts for that account.
+When the app opens, go to the account list. Click the `View Posts` button on the account row to start checking posts for that account.
 
 ![Registered account list](../demo-screenshots/bigloadeb-use-01-account-list.png)
 

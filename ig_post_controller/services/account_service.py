@@ -16,6 +16,7 @@ class AccountService:
                 """
                 SELECT *
                 FROM accounts
+                WHERE archived = 0
                 ORDER BY company_name COLLATE NOCASE, username COLLATE NOCASE
                 """
             ).fetchall()
@@ -54,6 +55,7 @@ class AccountService:
                     profile_url = excluded.profile_url,
                     display_name = excluded.display_name,
                     company_name = excluded.company_name,
+                    archived = 0,
                     updated_at = excluded.updated_at
                 """,
                 (profile_url, username, display_name, company_name, now, now),
@@ -65,11 +67,25 @@ class AccountService:
         return self._row_to_account(row)
 
     def delete_account(self, account_id: int) -> None:
+        """Remove an account from the active list without losing downloaded records."""
         with self.database.connect() as connection:
-            connection.execute(
-                "DELETE FROM accounts WHERE id = ?",
+            has_downloads = connection.execute(
+                """
+                SELECT 1
+                FROM downloads d
+                JOIN posts p ON p.id = d.post_id
+                WHERE p.account_id = ?
+                LIMIT 1
+                """,
                 (account_id,),
-            )
+            ).fetchone()
+            if has_downloads:
+                connection.execute(
+                    "UPDATE accounts SET archived = 1, updated_at = ? WHERE id = ?",
+                    (datetime.now().isoformat(), account_id),
+                )
+            else:
+                connection.execute("DELETE FROM accounts WHERE id = ?", (account_id,))
 
     def update_last_checked(
         self,

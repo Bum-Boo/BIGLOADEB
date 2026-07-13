@@ -11,7 +11,12 @@ from urllib.parse import urlparse
 
 import requests
 
-from ig_post_controller.config import get_default_download_root
+from ig_post_controller.config import (
+    DOWNLOAD_LAYOUT_SETTING_KEY,
+    get_app_data_dir,
+    get_default_download_root,
+    normalize_download_layout,
+)
 from ig_post_controller.database import Database
 from ig_post_controller.models import MediaItem, PostRecord
 from ig_post_controller.utils.text import build_default_download_title, sanitize_for_path
@@ -22,6 +27,9 @@ logger = logging.getLogger(__name__)
 
 class DownloadService:
     DOWNLOAD_ROOT_SETTING = "download_root"
+    DOWNLOAD_ROOT_HISTORY_SETTING = "download_root_history"
+    DOWNLOAD_ROOT_RECOVERY_SETTING = "download_root_recovery_notice"
+    STORAGE_MARKER_FILENAME = ".bigloadeb-storage.json"
 
     def __init__(self, database: Database) -> None:
         self.database = database
@@ -40,17 +48,102 @@ class DownloadService:
         configured = self.database.get_setting(self.DOWNLOAD_ROOT_SETTING)
         if configured:
             path = Path(configured)
-            path.mkdir(parents=True, exist_ok=True)
-            return path
-        default = get_default_download_root()
-        self.set_download_root(default)
-        return default
+            if path.is_dir():
+                try:
+                    self._ensure_storage_marker(path)
+                    return path
+                except OSError:
+                    logger.warning("Configured download root is not writable path=%s", path)
+            return self._recover_unavailable_root(path)
+        return self._activate_download_root(get_default_download_root(), remember_previous=False)
 
     def set_download_root(self, path: str | Path) -> Path:
-        target = Path(path)
+        return self._activate_download_root(Path(path), remember_previous=True)
+
+    def get_download_layout(self) -> str:
+        value = normalize_download_layout(self.database.get_setting(DOWNLOAD_LAYOUT_SETTING_KEY))
+        self.database.set_setting(DOWNLOAD_LAYOUT_SETTING_KEY, value)
+        return value
+
+    def set_download_layout(self, layout: str) -> str:
+        normalized = normalize_download_layout(layout)
+        self.database.set_setting(DOWNLOAD_LAYOUT_SETTING_KEY, normalized)
+        return normalized
+
+    def consume_download_root_recovery_notice(self) -> str | None:
+        previous = self.database.get_setting(self.DOWNLOAD_ROOT_RECOVERY_SETTING)
+        if previous:
+            self.database.set_setting(self.DOWNLOAD_ROOT_RECOVERY_SETTING, "")
+        return previous or None
+
+    def list_known_download_roots(self) -> list[Path]:
+        roots: list[Path] = []
+        configured = self.database.get_setting(self.DOWNLOAD_ROOT_SETTING)
+        if configured:
+            roots.append(Path(configured))
+        raw_history = self.database.get_setting(self.DOWNLOAD_ROOT_HISTORY_SETTING)
+        if raw_history:
+            try:
+                payload = json.loads(raw_history)
+            except json.JSONDecodeError:
+                payload = []
+            if isinstance(payload, list):
+                roots.extend(Path(item) for item in payload if isinstance(item, str) and item)
+        unique: list[Path] = []
+        seen: set[str] = set()
+        for root in roots:
+            key = str(root).casefold()
+            if key not in seen:
+                seen.add(key)
+                unique.append(root)
+        return unique
+
+    def _activate_download_root(self, target: Path, *, remember_previous: bool) -> Path:
+        previous = self.database.get_setting(self.DOWNLOAD_ROOT_SETTING)
         target.mkdir(parents=True, exist_ok=True)
+        if not target.is_dir():
+            raise NotADirectoryError(str(target))
+        self._ensure_storage_marker(target)
+        if remember_previous and previous and Path(previous) != target:
+            self._remember_download_root(Path(previous))
         self.database.set_setting(self.DOWNLOAD_ROOT_SETTING, str(target))
         return target
+
+    def _recover_unavailable_root(self, unavailable: Path) -> Path:
+        self._remember_download_root(unavailable)
+        candidates = [get_default_download_root(), get_app_data_dir() / "downloads"]
+        last_error: OSError | None = None
+        for candidate in candidates:
+            try:
+                recovered = self._activate_download_root(candidate, remember_previous=False)
+            except OSError as exc:
+                last_error = exc
+                continue
+            self.database.set_setting(self.DOWNLOAD_ROOT_RECOVERY_SETTING, str(unavailable))
+            logger.warning("Download root unavailable; recovered old=%s new=%s", unavailable, recovered)
+            return recovered
+        if last_error is not None:
+            raise last_error
+        raise OSError("No writable download folder is available")
+
+    def _remember_download_root(self, path: Path) -> None:
+        history = [str(root) for root in self.list_known_download_roots() if root != path]
+        history.insert(0, str(path))
+        self.database.set_setting(
+            self.DOWNLOAD_ROOT_HISTORY_SETTING,
+            json.dumps(history[:20], ensure_ascii=False),
+        )
+
+    def _ensure_storage_marker(self, root: Path) -> None:
+        marker = root / self.STORAGE_MARKER_FILENAME
+        if marker.is_file():
+            return
+        payload = {
+            "storage_id": uuid.uuid4().hex,
+            "created_by": "BIGLOADEB",
+            "created_at": datetime.now().isoformat(),
+        }
+        marker.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
 
     def list_downloaded_posts(
         self,
@@ -184,6 +277,49 @@ class DownloadService:
             )
         return True
 
+    def reconnect_downloads_under(self, folder_path: str | Path, *, max_meta_files: int = 5000) -> dict[str, int]:
+        search_root = Path(folder_path)
+        if not search_root.is_dir():
+            raise ValueError("Selected folder is not available.")
+        scanned = 0
+        reconnected = 0
+        skipped = 0
+        for meta_path in search_root.rglob("meta.json"):
+            if scanned >= max_meta_files:
+                break
+            if any(".tmp-" in part or ".backup-" in part for part in meta_path.parts):
+                continue
+            scanned += 1
+            payload = self._read_meta_payload(meta_path)
+            shortcode = payload.get("shortcode")
+            post_url = payload.get("post_url")
+            if not isinstance(shortcode, str) or not isinstance(post_url, str):
+                skipped += 1
+                continue
+            with self.database.connect() as connection:
+                row = connection.execute(
+                    """
+                    SELECT d.post_id, p.source_url
+                    FROM downloads d
+                    JOIN posts p ON p.id = d.post_id
+                    WHERE p.shortcode = ?
+                    """,
+                    (shortcode,),
+                ).fetchone()
+            if row is None or row["source_url"] != post_url:
+                skipped += 1
+                continue
+            try:
+                if self.reconnect_downloaded_post(int(row["post_id"]), meta_path.parent):
+                    reconnected += 1
+                else:
+                    skipped += 1
+            except ValueError:
+                skipped += 1
+        if reconnected:
+            self._remember_download_root(search_root)
+        return {"scanned": scanned, "reconnected": reconnected, "skipped": skipped}
+
     def delete_downloaded_post(self, post_id: int) -> bool:
         with self.database.connect() as connection:
             row = connection.execute(
@@ -226,11 +362,15 @@ class DownloadService:
             batch_index=batch_index,
         )
         root = self.get_download_root()
-        company_dir = root / sanitize_for_path(
-            post.company_name or post.display_name or post.username,
-            max_length=60,
-        )
-        target_dir = company_dir / "posts" / post.taken_at.strftime("%Y") / post.taken_at.strftime("%m") / target_title
+        if self.get_download_layout() == "flat":
+            flat_name = sanitize_for_path(f"{target_title}_{post.shortcode}", max_length=120)
+            target_dir = root / flat_name
+        else:
+            company_dir = root / sanitize_for_path(
+                post.company_name or post.display_name or post.username,
+                max_length=60,
+            )
+            target_dir = company_dir / "posts" / post.taken_at.strftime("%Y") / post.taken_at.strftime("%m") / target_title
         existing_folder = Path(post.folder_path) if post.folder_path else None
         temp_dir = target_dir.with_name(f".{target_dir.name}.tmp-{uuid.uuid4().hex}")
         temp_dir.mkdir(parents=True, exist_ok=False)
@@ -281,6 +421,7 @@ class DownloadService:
                 "taken_at": post.taken_at.isoformat(),
                 "downloaded_at": datetime.now().isoformat(),
                 "folder_title": target_title,
+                "storage_layout": self.get_download_layout(),
                 "media": [item.to_dict() for item in local_media_items],
             }
             (temp_dir / "meta.json").write_text(json.dumps(meta_payload, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -386,11 +527,19 @@ class DownloadService:
         try:
             target = path.resolve(strict=False)
             if require_download_root:
-                root = self.get_download_root().resolve(strict=False)
-                target.relative_to(root)
-                if target == root:
+                inside_known_root = False
+                for known_root in self.list_known_download_roots():
+                    root = known_root.resolve(strict=False)
+                    try:
+                        target.relative_to(root)
+                    except ValueError:
+                        continue
+                    if target != root:
+                        inside_known_root = True
+                        break
+                if not inside_known_root:
                     return False
-        except (OSError, ValueError):
+        except OSError:
             return False
         meta_path = target / "meta.json"
         caption_path = target / "caption.txt"

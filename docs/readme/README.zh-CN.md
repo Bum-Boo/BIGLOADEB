@@ -96,11 +96,11 @@ demo flow 会选择 registered Instagram account，检查 feed，然后查看 lo
 
 1. 运行 `dist\IGPostController.exe`。
 2. 在左侧 navigation 中选择 `Accounts`。
-3. 点击 registered account row 上的 `Feed` button。
+3. 点击已注册账户行上的 `查看帖子` 按钮。
 4. 在左侧 navigation 中选择 `Downloaded Posts`。
-5. 查看 saved post card 的 thumbnail、caption、`Download again` 和 `Delete` actions。
+5. 查看已保存帖子卡片的缩略图、说明、`重新下载文件` 和 `删除` 操作。
 
-应用打开后进入 account list。点击 account row 上的 `Feed` button，开始检查该 account 的 posts。
+应用打开后进入账户列表。点击账户行上的 `查看帖子` 按钮，开始检查该账户的帖子。
 
 ![Registered account list](../demo-screenshots/bigloadeb-use-01-account-list.png)
 

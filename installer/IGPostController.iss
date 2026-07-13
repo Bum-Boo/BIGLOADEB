@@ -1,7 +1,7 @@
 #define MyAppName "IG Post Controller"
 #define MyAppPublisher "BumBoo"
 #define MyAppExeName "IGPostController.exe"
-#define MyAppVersion "0.1.2"
+#define MyAppVersion "0.1.3"
 #define MyAppId "{{4B4280C0-A6C5-4DF2-A05B-4E6D2A4E0100}"
 
 [Setup]
